@@ -188,12 +188,15 @@ static QRectF resolveIconGeometry(KWin::EffectWindow* w)
     // Translate the icon by the offset between the two screens' origins so that
     // a button at local position (lx, ly) within the source panel appears at the
     // same local position within the target panel.
-    // Falls back to dock center when sourceDock is unknown.
+    //
+    // When sourceDock is unknown (which can happen while a Dodge Windows panel
+    // is hidden), there is no reliable way to infer the task-manager button's
+    // position from the dock geometry. In particular, targeting the dock center
+    // sends the animation to an arbitrary position, often over a neighboring
+    // taskbar icon. Keep KWin's per-window icon geometry instead of fabricating
+    // a target. This also avoids changing the horizontal position of the icon.
     if (!sourceDock) {
-        const QRectF tgt = targetDock->frameGeometry();
-        return QRectF(tgt.center().x() - iconRect.width() / 2,
-            tgt.center().y() - iconRect.height() / 2,
-            iconRect.width(), iconRect.height());
+        return iconRect;
     }
 
     KWin::LogicalOutput* sourceDockScreen = KWin::effects->screenAt(
