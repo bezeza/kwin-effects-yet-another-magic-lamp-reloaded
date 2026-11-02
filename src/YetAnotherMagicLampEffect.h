@@ -54,7 +54,7 @@ public:
 #endif
     void postPaintScreen() override;
 
-    void paintWindow(const KWin::RenderTarget& renderTarget, const KWin::RenderViewport& viewport,
+    bool paintWindow(const KWin::RenderTarget& renderTarget, const KWin::RenderViewport& viewport,
         KWin::EffectWindow* w, int mask, const KWin::Region& region,
         KWin::WindowPaintData& data) override;
 
