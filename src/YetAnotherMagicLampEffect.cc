@@ -26,12 +26,36 @@
 
 // kwineffects
 #include <core/renderviewport.h>
+#include <core/output.h>
 
 // Qt
+#include <QDebug>
 #include <QTimer>
 
 // std
+#include <chrono>
 #include <cmath>
+
+static qint64 diagnosticMonotonicMs()
+{
+    return std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now().time_since_epoch()).count();
+}
+
+static void logOutputGeometry(const char* label, KWin::LogicalOutput* output)
+{
+    if (!output) {
+        qInfo().noquote() << "[YetAnotherMagicLamp]" << diagnosticMonotonicMs()
+                          << label << "output=null";
+        return;
+    }
+
+    qInfo().noquote() << "[YetAnotherMagicLamp]" << diagnosticMonotonicMs()
+                      << label
+                      << "name=" << output->name()
+                      << "geometry=" << output->geometryF()
+                      << "scale=" << output->scale();
+}
 
 // Returns which screen edge a dock panel is closest to.
 static Direction dockEdge(KWin::EffectWindow* dock)
@@ -72,14 +96,25 @@ static Direction dockEdge(KWin::EffectWindow* dock)
 static QRectF resolveIconGeometry(KWin::EffectWindow* w)
 {
     const QRectF iconRect = w->iconGeometry();
+    const QRectF windowRect = w->frameGeometry();
+    qInfo().noquote() << "[YetAnotherMagicLamp]" << diagnosticMonotonicMs()
+                      << "resolve.begin"
+                      << "window=" << static_cast<quintptr>(reinterpret_cast<quintptr>(w))
+                      << "windowGeometry=" << windowRect
+                      << "rawIconGeometry=" << iconRect
+                      << "rawValid=" << iconRect.isValid();
 
     // Window center determines the authoritative screen (robust against decorations
     // extending a few pixels into an adjacent screen).
     KWin::LogicalOutput* primaryScreen = KWin::effects->screenAt(
         w->frameGeometry().center().toPoint());
     if (!primaryScreen) {
+        qInfo().noquote() << "[YetAnotherMagicLamp]" << diagnosticMonotonicMs()
+                          << "resolve.no-primary-screen"
+                          << "rawIconGeometry=" << iconRect;
         return iconRect;
     }
+    logOutputGeometry("window.primaryOutput", primaryScreen);
 
     // Find which dock (panel) the iconGeometry falls into.
     // Dock frameGeometry is always in global coordinates, making this reliable
@@ -91,8 +126,20 @@ static QRectF resolveIconGeometry(KWin::EffectWindow* w)
         }
         // Use intersects, not contains: Plasma sometimes publishes icon geometry
         // slightly larger than the panel (KDE's own Magic Lamp has the same note).
-        if (candidate->frameGeometry().intersects(iconRect)) {
+        const QRectF dockRect = candidate->frameGeometry();
+        KWin::LogicalOutput* dockOutput = KWin::effects->screenAt(dockRect.center().toPoint());
+        qInfo().noquote() << "[YetAnotherMagicLamp]" << diagnosticMonotonicMs()
+                          << "dock.candidate"
+                          << "dock=" << static_cast<quintptr>(reinterpret_cast<quintptr>(candidate))
+                          << "geometry=" << dockRect
+                          << "intersectsRawIcon=" << dockRect.intersects(iconRect);
+        logOutputGeometry("dock.output", dockOutput);
+        if (dockRect.intersects(iconRect)) {
             sourceDock = candidate;
+            qInfo().noquote() << "[YetAnotherMagicLamp]" << diagnosticMonotonicMs()
+                              << "dock.source.selected"
+                              << "dock=" << static_cast<quintptr>(reinterpret_cast<quintptr>(candidate))
+                              << "geometry=" << dockRect;
             break;
         }
     }
@@ -103,6 +150,10 @@ static QRectF resolveIconGeometry(KWin::EffectWindow* w)
         KWin::LogicalOutput* sourceDockScreen = KWin::effects->screenAt(
             sourceDock->frameGeometry().center().toPoint());
         if (sourceDockScreen == primaryScreen) {
+            qInfo().noquote() << "[YetAnotherMagicLamp]" << diagnosticMonotonicMs()
+                              << "resolve.same-output"
+                              << "sourceDock=" << static_cast<quintptr>(reinterpret_cast<quintptr>(sourceDock))
+                              << "resolvedIconGeometry=" << iconRect;
             return iconRect;
         }
     }
@@ -182,8 +233,18 @@ static QRectF resolveIconGeometry(KWin::EffectWindow* w)
         targetDock = fallbackDock;
     }
     if (!targetDock) {
+        qInfo().noquote() << "[YetAnotherMagicLamp]" << diagnosticMonotonicMs()
+                          << "resolve.no-target-dock"
+                          << "sourceDock=" << static_cast<quintptr>(reinterpret_cast<quintptr>(sourceDock))
+                          << "rawIconGeometry=" << iconRect;
         return iconRect;
     }
+    qInfo().noquote() << "[YetAnotherMagicLamp]" << diagnosticMonotonicMs()
+                      << "dock.target.selected"
+                      << "targetDock=" << static_cast<quintptr>(reinterpret_cast<quintptr>(targetDock))
+                      << "geometry=" << targetDock->frameGeometry();
+    logOutputGeometry("targetDock.output", KWin::effects->screenAt(
+        targetDock->frameGeometry().center().toPoint()));
 
     // Translate the icon by the offset between the two screens' origins so that
     // a button at local position (lx, ly) within the source panel appears at the
@@ -196,6 +257,9 @@ static QRectF resolveIconGeometry(KWin::EffectWindow* w)
     // taskbar icon. Keep KWin's per-window icon geometry instead of fabricating
     // a target. This also avoids changing the horizontal position of the icon.
     if (!sourceDock) {
+        qInfo().noquote() << "[YetAnotherMagicLamp]" << diagnosticMonotonicMs()
+                          << "resolve.no-source-dock-preserve-raw"
+                          << "resolvedIconGeometry=" << iconRect;
         return iconRect;
     }
 
@@ -215,8 +279,17 @@ static QRectF resolveIconGeometry(KWin::EffectWindow* w)
     const qreal cy = qBound(tgt.top() + iconRect.height() / 2,
         translatedRect.center().y(),
         tgt.bottom() - iconRect.height() / 2);
-    return QRectF(cx - iconRect.width() / 2, cy - iconRect.height() / 2,
+    const QRectF resolved(cx - iconRect.width() / 2, cy - iconRect.height() / 2,
         iconRect.width(), iconRect.height());
+    qInfo().noquote() << "[YetAnotherMagicLamp]" << diagnosticMonotonicMs()
+                      << "resolve.translated"
+                      << "sourceDock=" << static_cast<quintptr>(reinterpret_cast<quintptr>(sourceDock))
+                      << "targetDock=" << static_cast<quintptr>(reinterpret_cast<quintptr>(targetDock))
+                      << "sourceIcon=" << iconRect
+                      << "translatedIcon=" << translatedRect
+                      << "resolvedIcon=" << resolved
+                      << "targetDockGeometry=" << tgt;
+    return resolved;
 }
 
 enum ShapeCurve {
@@ -451,12 +524,46 @@ void YetAnotherMagicLampEffect::slotMinimizedChanged(KWin::EffectWindow* w)
 
 void YetAnotherMagicLampEffect::startMinimize(KWin::EffectWindow* w)
 {
+    const quintptr windowId = reinterpret_cast<quintptr>(w);
+    qInfo().noquote() << "[YetAnotherMagicLamp]" << diagnosticMonotonicMs()
+                      << "minimize.changed"
+                      << "window=" << windowId
+                      << "minimized=" << w->isMinimized()
+                      << "windowGeometry=" << w->frameGeometry()
+                      << "rawIconGeometry=" << w->iconGeometry()
+                      << "rawValid=" << w->iconGeometry().isValid();
+
+    // Observe whether Plasma/KWin geometry changes after minimizedChanged.
+    // These snapshots are diagnostic only and do not affect animation state.
+    for (const int delayMs : {0, 50, 150, 300}) {
+        QPointer<KWin::EffectWindow> weakSnapshot(w);
+        QTimer::singleShot(delayMs, this, [weakSnapshot, delayMs]() {
+            KWin::EffectWindow* win = weakSnapshot.data();
+            if (!win || !win->isMinimized()) {
+                return;
+            }
+            qInfo().noquote() << "[YetAnotherMagicLamp]" << diagnosticMonotonicMs()
+                              << "minimize.snapshot"
+                              << "delayMs=" << delayMs
+                              << "window=" << static_cast<quintptr>(reinterpret_cast<quintptr>(win))
+                              << "windowGeometry=" << win->frameGeometry()
+                              << "rawIconGeometry=" << win->iconGeometry()
+                              << "rawValid=" << win->iconGeometry().isValid()
+                              << "resolvedIconGeometry=" << resolveIconGeometry(win);
+        });
+    }
+
     if (KWin::effects->activeFullScreenEffect()) {
         return;
     }
 
     const QRectF iconRect = w->iconGeometry();
     if (!iconRect.isValid()) {
+        qInfo().noquote() << "[YetAnotherMagicLamp]" << diagnosticMonotonicMs()
+                          << "minimize.invalid-icon-geometry"
+                          << "window=" << windowId
+                          << "rawIconGeometry=" << iconRect
+                          << "retryInMs=150";
         // On Wayland secondary screens the Plasma taskbar sets iconGeometry
         // asynchronously (after QML layout). Keep the window visible and retry
         // once the geometry arrives.
@@ -478,7 +585,13 @@ void YetAnotherMagicLampEffect::startMinimize(KWin::EffectWindow* w)
     AnimationData& animData = m_animations[w];
     animData.model.setWindow(w);
     animData.model.setParameters(m_modelParameters);
-    animData.model.setIconGeometry(resolveIconGeometry(w));
+    const QRectF resolvedIconGeometry = resolveIconGeometry(w);
+    qInfo().noquote() << "[YetAnotherMagicLamp]" << diagnosticMonotonicMs()
+                      << "minimize.animation-target"
+                      << "window=" << windowId
+                      << "rawIconGeometry=" << iconRect
+                      << "resolvedIconGeometry=" << resolvedIconGeometry;
+    animData.model.setIconGeometry(resolvedIconGeometry);
     animData.model.start(Model::AnimationKind::Minimize);
     animData.visibleRef = KWin::EffectWindowVisibleRef(w, KWin::EffectWindow::PAINT_DISABLED_BY_MINIMIZE);
 
