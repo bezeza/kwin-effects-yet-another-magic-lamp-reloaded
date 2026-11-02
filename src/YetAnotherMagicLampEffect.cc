@@ -388,7 +388,7 @@ void YetAnotherMagicLampEffect::postPaintScreen()
     KWin::effects->postPaintScreen();
 }
 
-void YetAnotherMagicLampEffect::paintWindow(const KWin::RenderTarget& renderTarget,
+bool YetAnotherMagicLampEffect::paintWindow(const KWin::RenderTarget& renderTarget,
     const KWin::RenderViewport& viewport,
     KWin::EffectWindow* w, int mask,
     const KWin::Region& region,
@@ -398,11 +398,10 @@ void YetAnotherMagicLampEffect::paintWindow(const KWin::RenderTarget& renderTarg
     if (it != m_animations.constEnd() && it->model.needsClip()) {
         const KWin::Region clipLogical(it->model.clipRegion());
         const KWin::Region clip = viewport.mapToDeviceCoordinatesAligned(clipLogical);
-        KWin::effects->paintWindow(renderTarget, viewport, w, mask, clip, data);
-        return;
+        return KWin::effects->paintWindow(renderTarget, viewport, w, mask, clip, data);
     }
 
-    KWin::effects->paintWindow(renderTarget, viewport, w, mask, region, data);
+    return KWin::effects->paintWindow(renderTarget, viewport, w, mask, region, data);
 }
 
 void YetAnotherMagicLampEffect::apply(KWin::EffectWindow* window, int mask, KWin::WindowPaintData& data, KWin::WindowQuadList& quads)
