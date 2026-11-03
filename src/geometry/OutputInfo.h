@@ -8,6 +8,7 @@
 #pragma once
 
 // Qt
+#include <QMetaType>
 #include <QRectF>
 #include <QSize>
 #include <QString>
@@ -73,3 +74,5 @@ struct OutputInfo {
 };
 
 } // namespace CoordinateMapper
+
+Q_DECLARE_METATYPE(CoordinateMapper::TransformKind)
