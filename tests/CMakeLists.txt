@@ -41,7 +41,6 @@ add_test(NAME geometryresolvertest COMMAND geometryresolvertest)
 
 add_executable(windowtrackertest
     windowtrackertest.cc
-    ../src/geometry/WindowTracker.cc
 )
 target_include_directories(windowtrackertest PRIVATE ../src)
 target_link_libraries(windowtrackertest Qt6::Core Qt6::Test)

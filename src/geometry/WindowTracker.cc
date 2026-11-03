@@ -73,13 +73,6 @@ bool WindowTracker::taskButtonsSettled(KWin::EffectWindow* window, qint64 settle
     return hasSettled(it->sinceAdded.elapsed(), it->sinceOutputChange.elapsed(), settleMs);
 }
 
-bool WindowTracker::hasSettled(qint64 sinceAddedMs, qint64 sinceOutputChangeMs, qint64 settleMs)
-{
-    return settleMs >= 0
-        && sinceAddedMs >= settleMs
-        && sinceOutputChangeMs >= settleMs;
-}
-
 void WindowTracker::updateWindowOutput(KWin::EffectWindow* window)
 {
     if (!window) {

@@ -18,6 +18,7 @@
 #include <window.h>
 
 // Qt
+#include <QDebug>
 #include <QLoggingCategory>
 #include <QRect>
 

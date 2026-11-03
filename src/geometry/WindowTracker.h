@@ -7,14 +7,16 @@
 
 #pragma once
 
-// KWin
-#include <effect/effectwindow.h>
-
 // Qt
 #include <QElapsedTimer>
 #include <QHash>
 #include <QMetaObject>
 #include <QObject>
+
+namespace KWin {
+class EffectWindow;
+class LogicalOutput;
+}
 
 namespace CoordinateMapper {
 
@@ -36,7 +38,12 @@ public:
     bool taskButtonsSettled(KWin::EffectWindow* window, qint64 settleMs) const;
 
     // Pure threshold logic, exposed for deterministic unit tests.
-    static bool hasSettled(qint64 sinceAddedMs, qint64 sinceOutputChangeMs, qint64 settleMs);
+    static bool hasSettled(qint64 sinceAddedMs, qint64 sinceOutputChangeMs, qint64 settleMs)
+    {
+        return settleMs >= 0
+            && sinceAddedMs >= settleMs
+            && sinceOutputChangeMs >= settleMs;
+    }
 
 private:
     struct Entry {
