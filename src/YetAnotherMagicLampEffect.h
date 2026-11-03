@@ -26,11 +26,31 @@
 #include <effect/offscreeneffect.h>
 
 // Qt
+#include <QElapsedTimer>
+#include <QHash>
 #include <QPointer>
 
 struct AnimationData {
     Model model;
     KWin::EffectWindowVisibleRef visibleRef;
+};
+
+// A minimized window kept painted while it waits for its task-button geometry.
+struct PendingMinimize {
+    KWin::EffectWindowVisibleRef visibleRef;
+    int attempts = 0;
+    // Identifies the retry chain that owns this entry, so a timer left over
+    // from an earlier minimize of the same window cannot drive a new one.
+    quint64 generation = 0;
+};
+
+// When a window last gave Plasma a reason to publish a task button: it was
+// added, or it moved to another output (a task manager that shows only the
+// current screen gets a new delegate then).
+struct WindowHistory {
+    QElapsedTimer sinceAdded;
+    QElapsedTimer sinceOutputChange;
+    const KWin::LogicalOutput* output = nullptr;
 };
 
 class YetAnotherMagicLampEffect : public KWin::OffscreenEffect {
@@ -54,7 +74,16 @@ public:
 #endif
     void postPaintScreen() override;
 
-    void paintWindow(const KWin::RenderTarget& renderTarget, const KWin::RenderViewport& viewport,
+    // KWin 6.8 made paintWindow() return bool. The CMake probe
+    // KWIN_PAINTWINDOW_RETURNS_BOOL picks the matching return type; the body
+    // returns the next effect's result either way (returning a void
+    // expression from a void function is valid C++).
+#ifdef KWIN_PAINTWINDOW_RETURNS_BOOL
+    using PaintWindowResult = bool;
+#else
+    using PaintWindowResult = void;
+#endif
+    PaintWindowResult paintWindow(const KWin::RenderTarget& renderTarget, const KWin::RenderViewport& viewport,
         KWin::EffectWindow* w, int mask, const KWin::Region& region,
         KWin::WindowPaintData& data) override;
 
@@ -69,19 +98,27 @@ protected:
 private Q_SLOTS:
     void slotWindowAdded(KWin::EffectWindow* w);
     void slotMinimizedChanged(KWin::EffectWindow* w);
+    void slotWindowClosed(KWin::EffectWindow* w);
     void slotWindowDeleted(KWin::EffectWindow* w);
     void slotActiveFullScreenEffectChanged();
 
 private:
     void startMinimize(KWin::EffectWindow* w);
+    void animateMinimize(KWin::EffectWindow* w, const QRectF& target);
     void startUnminimize(KWin::EffectWindow* w);
+    void scheduleMinimizeRetry(KWin::EffectWindow* w, quint64 generation);
+    bool taskButtonsSettled(KWin::EffectWindow* w) const;
+    void logState(const char* event) const;
 
     Model::Parameters m_modelParameters;
     int m_gridResolution;
 
     QMap<KWin::EffectWindow*, AnimationData> m_animations;
     // Windows waiting for iconGeometry to become valid before animation starts
-    QMap<KWin::EffectWindow*, KWin::EffectWindowVisibleRef> m_pendingMinimize;
+    QMap<KWin::EffectWindow*, PendingMinimize> m_pendingMinimize;
+    quint64 m_pendingGeneration = 0;
+    int m_retryTimersInFlight = 0;
+    QHash<KWin::EffectWindow*, WindowHistory> m_history;
 };
 
 inline int YetAnotherMagicLampEffect::requestedEffectChainPosition() const

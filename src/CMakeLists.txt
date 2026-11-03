@@ -1,6 +1,7 @@
 add_subdirectory(kcm)
 
 set(effect_SRCS
+    geometry/CoordinateMapper.cc
     Model.cc
     YetAnotherMagicLampEffect.cc
     plugin.cc
@@ -15,6 +16,10 @@ add_library(kwin4_effect_yetanothermagiclamp SHARED ${effect_SRCS})
 if(KWIN_PREPAINT_HAS_PRESENT_TIME)
     target_compile_definitions(kwin4_effect_yetanothermagiclamp
         PRIVATE KWIN_PREPAINT_HAS_PRESENT_TIME)
+endif()
+if(KWIN_PAINTWINDOW_RETURNS_BOOL)
+    target_compile_definitions(kwin4_effect_yetanothermagiclamp
+        PRIVATE KWIN_PAINTWINDOW_RETURNS_BOOL)
 endif()
 
 target_link_libraries(kwin4_effect_yetanothermagiclamp
