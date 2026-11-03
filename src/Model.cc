@@ -90,9 +90,10 @@ void Model::start(AnimationKind kind)
         return;
     }
 
-    if (!m_iconGeometry.isValid()) {
-        m_iconGeometry = m_window->iconGeometry();
-    }
+    // The caller resolves the target (see resolveIconGeometry()) and only
+    // starts an animation with a valid one; KWin's iconGeometry() is not a
+    // fallback, it may be a task button on another output.
+    Q_ASSERT(m_iconGeometry.isValid());
     m_direction = realizeDirection(m_window, m_iconGeometry);
     m_bumpDistance = computeBumpDistance();
     m_shapeFactor = computeShapeFactor();

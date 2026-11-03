@@ -116,8 +116,8 @@ public:
     void setWindow(KWin::EffectWindow* window);
 
     /**
-     * Overrides the icon geometry used for the animation target.
-     * Call before start() to use a different target than iconGeometry().
+     * Sets the animation target. Must be called with a valid rect before
+     * start(); there is no fallback to the window's iconGeometry().
      **/
     void setIconGeometry(const QRectF& rect);
 
