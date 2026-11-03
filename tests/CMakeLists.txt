@@ -6,3 +6,10 @@ add_executable(coordinatemappertest
 target_include_directories(coordinatemappertest PRIVATE ../src)
 target_link_libraries(coordinatemappertest Qt6::Core Qt6::Test)
 add_test(NAME coordinatemappertest COMMAND coordinatemappertest)
+
+add_executable(outputinfotest
+    outputinfotest.cc
+)
+target_include_directories(outputinfotest PRIVATE ../src)
+target_link_libraries(outputinfotest Qt6::Core Qt6::Test)
+add_test(NAME outputinfotest COMMAND outputinfotest)
