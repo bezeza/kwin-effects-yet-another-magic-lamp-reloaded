@@ -7,7 +7,6 @@
 
 #pragma once
 
-// Own
 // Qt
 #include <QList>
 #include <QPointF>

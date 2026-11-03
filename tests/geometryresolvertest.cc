@@ -92,7 +92,8 @@ void GeometryResolverTest::rejectsNonFiniteWindowCenter()
         {true, QRectF(0.0, 700.0, 1024.0, 68.0), QRectF(400.0, 710.0, 40.0, 40.0)},
     };
 
-    QVERIFY(!nearestButtonOnOutput(candidates, QPointF(std::numeric_limits<qreal>::quiet_NaN(), 740.0)));
+    const QPointF invalidCenter(std::numeric_limits<qreal>::quiet_NaN(), 740.0);
+    QVERIFY(!nearestButtonOnOutput(candidates, invalidCenter));
 }
 
 QTEST_GUILESS_MAIN(GeometryResolverTest)
