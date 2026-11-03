@@ -68,4 +68,9 @@ try_compile(KWIN_PAINTWINDOW_RETURNS_BOOL
 
 add_subdirectory(src)
 
+if(BUILD_TESTING)
+    find_package(Qt6 REQUIRED COMPONENTS Test)
+    add_subdirectory(tests)
+endif()
+
 feature_summary(WHAT ALL)

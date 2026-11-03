@@ -1,6 +1,7 @@
 add_subdirectory(kcm)
 
 set(effect_SRCS
+    geometry/CoordinateMapper.cc
     Model.cc
     YetAnotherMagicLampEffect.cc
     plugin.cc

@@ -19,6 +19,7 @@
 // Own
 #include "YetAnotherMagicLampEffect.h"
 #include "Model.h"
+#include "geometry/CoordinateMapper.h"
 #include "kwincompat.h"
 
 // Auto-generated
@@ -77,7 +78,7 @@ static QRectF buttonOnOutput(KWin::WaylandServer* server, const KWin::Window* wi
             continue;
         }
         const QRectF panelRect = panel->frameGeometry();
-        const QRectF button = QRectF(QRect(it.value())).translated(panel->pos());
+        const QRectF button = CoordinateMapper::surfaceToGlobal(QRect(it.value()), panel->pos());
         qCDebug(lcMagicLamp).noquote() << "button.candidate"
                                        << "window=" << logId
                                        << "owner=" << windowId(window)
@@ -88,7 +89,7 @@ static QRectF buttonOnOutput(KWin::WaylandServer* server, const KWin::Window* wi
         if (panel->output() != output || !button.isValid()) {
             continue;
         }
-        const qreal distance = (panelRect.center() - center).manhattanLength();
+        const qreal distance = CoordinateMapper::centreDistance(panelRect, center);
         if (distance < bestDistance) {
             bestDistance = distance;
             best = button;
