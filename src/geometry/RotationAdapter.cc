@@ -56,27 +56,36 @@ std::optional<QPointF> mapPoint(
         return std::nullopt;
     }
 
+    QPointF result;
     switch (transform) {
     case TransformKind::Normal:
-        return point;
+        result = point;
+        break;
     case TransformKind::Rotate90:
-        return QPointF(point.y(), bounds.width() - point.x());
+        result = QPointF(point.y(), bounds.width() - point.x());
+        break;
     case TransformKind::Rotate180:
-        return QPointF(bounds.width() - point.x(), bounds.height() - point.y());
+        result = QPointF(bounds.width() - point.x(), bounds.height() - point.y());
+        break;
     case TransformKind::Rotate270:
-        return QPointF(bounds.height() - point.y(), point.x());
+        result = QPointF(bounds.height() - point.y(), point.x());
+        break;
     case TransformKind::FlipX:
-        return QPointF(bounds.width() - point.x(), point.y());
+        result = QPointF(bounds.width() - point.x(), point.y());
+        break;
     case TransformKind::FlipX90:
-        return QPointF(point.y(), point.x());
+        result = QPointF(point.y(), point.x());
+        break;
     case TransformKind::FlipX180:
-        return QPointF(point.x(), bounds.height() - point.y());
+        result = QPointF(point.x(), bounds.height() - point.y());
+        break;
     case TransformKind::FlipX270:
-        return QPointF(bounds.height() - point.y(), bounds.width() - point.x());
+        result = QPointF(bounds.height() - point.y(), bounds.width() - point.x());
+        break;
     case TransformKind::Unknown:
         return std::nullopt;
     }
-    return std::nullopt;
+    return isFinite(result) ? std::optional<QPointF>(result) : std::nullopt;
 }
 
 std::optional<QRectF> mapRect(
@@ -99,7 +108,12 @@ std::optional<QRectF> mapRect(
     const qreal right = std::max({topLeft->x(), topRight->x(), bottomLeft->x(), bottomRight->x()});
     const qreal bottom = std::max({topLeft->y(), topRight->y(), bottomLeft->y(), bottomRight->y()});
 
-    return QRectF(QPointF(left, top), QPointF(right, bottom));
+    const QRectF result(QPointF(left, top), QPointF(right, bottom));
+    if (!std::isfinite(left) || !std::isfinite(top)
+        || !std::isfinite(right) || !std::isfinite(bottom) || !result.isValid()) {
+        return std::nullopt;
+    }
+    return result;
 }
 
 } // namespace

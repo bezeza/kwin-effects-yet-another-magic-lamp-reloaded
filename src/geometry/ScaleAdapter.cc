@@ -21,6 +21,12 @@ bool isFinite(const QPointF& point)
     return std::isfinite(point.x()) && std::isfinite(point.y());
 }
 
+bool isFinite(const QRectF& rect)
+{
+    return std::isfinite(rect.x()) && std::isfinite(rect.y())
+        && std::isfinite(rect.width()) && std::isfinite(rect.height());
+}
+
 bool fitsInt(qreal value)
 {
     return std::isfinite(value)
@@ -41,17 +47,19 @@ std::optional<QPointF> ScaleAdapter::toPixels(const QPointF& logical, qreal scal
         return std::nullopt;
     }
 
-    return QPointF(logical.x() * scale, logical.y() * scale);
+    const QPointF result(logical.x() * scale, logical.y() * scale);
+    return isFinite(result) ? std::optional<QPointF>(result) : std::nullopt;
 }
 
 std::optional<QRectF> ScaleAdapter::toPixels(const QRectF& logical, qreal scale)
 {
-    if (!isValidScale(scale) || !logical.isValid()) {
+    if (!isValidScale(scale) || !logical.isValid() || !isFinite(logical)) {
         return std::nullopt;
     }
 
-    return QRectF(logical.x() * scale, logical.y() * scale,
+    const QRectF result(logical.x() * scale, logical.y() * scale,
         logical.width() * scale, logical.height() * scale);
+    return isFinite(result) && result.isValid() ? std::optional<QRectF>(result) : std::nullopt;
 }
 
 std::optional<QPointF> ScaleAdapter::toLogical(const QPointF& pixels, qreal scale)
@@ -60,17 +68,19 @@ std::optional<QPointF> ScaleAdapter::toLogical(const QPointF& pixels, qreal scal
         return std::nullopt;
     }
 
-    return QPointF(pixels.x() / scale, pixels.y() / scale);
+    const QPointF result(pixels.x() / scale, pixels.y() / scale);
+    return isFinite(result) ? std::optional<QPointF>(result) : std::nullopt;
 }
 
 std::optional<QRectF> ScaleAdapter::toLogical(const QRectF& pixels, qreal scale)
 {
-    if (!isValidScale(scale) || !pixels.isValid()) {
+    if (!isValidScale(scale) || !pixels.isValid() || !isFinite(pixels)) {
         return std::nullopt;
     }
 
-    return QRectF(pixels.x() / scale, pixels.y() / scale,
+    const QRectF result(pixels.x() / scale, pixels.y() / scale,
         pixels.width() / scale, pixels.height() / scale);
+    return isFinite(result) && result.isValid() ? std::optional<QRectF>(result) : std::nullopt;
 }
 
 std::optional<QRect> ScaleAdapter::toAlignedPixels(const QRectF& logical, qreal scale)

@@ -9,6 +9,8 @@
 
 #include <QTest>
 
+#include <limits>
+
 using CoordinateMapper::RotationAdapter;
 using CoordinateMapper::TransformKind;
 
@@ -94,6 +96,9 @@ void RotationAdapterTest::rejectsUnknownTransform()
         QRectF(1.0, 1.0, 10.0, 10.0), QSizeF(1920.0, 1080.0), TransformKind::Unknown));
     QVERIFY(!RotationAdapter::toNative(
         QRectF(1.0, 1.0, 10.0, 10.0), QSizeF(1920.0, 1080.0), TransformKind::Unknown));
+    QVERIFY(!RotationAdapter::toTransformed(
+        QRectF(std::numeric_limits<qreal>::quiet_NaN(), 0.0, 10.0, 10.0),
+        QSizeF(1920.0, 1080.0), TransformKind::Normal));
 }
 
 QTEST_GUILESS_MAIN(RotationAdapterTest)

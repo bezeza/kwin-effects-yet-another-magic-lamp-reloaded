@@ -52,6 +52,10 @@ struct OutputInfo {
     {
         return !id.isEmpty()
             && geometry.isValid()
+            && std::isfinite(geometry.x())
+            && std::isfinite(geometry.y())
+            && std::isfinite(geometry.width())
+            && std::isfinite(geometry.height())
             && std::isfinite(scale)
             && scale > 0.0
             && nativePixelSize.width() > 0

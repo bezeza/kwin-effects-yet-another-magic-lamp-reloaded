@@ -61,7 +61,7 @@ std::optional<OutputInfo> OutputManager::infoFor(KWin::LogicalOutput* output) co
 KWin::LogicalOutput* OutputManager::outputForId(const QString& id) const
 {
     for (auto it = m_entries.constBegin(); it != m_entries.constEnd(); ++it) {
-        if (it->info.id == id) {
+        if (it->info.id == id && !it->output.isNull()) {
             return it->output.data();
         }
     }
