@@ -26,15 +26,13 @@
 namespace CoordinateMapper {
 class GeometryResolver;
 class OutputManager;
+class WindowTracker;
 }
 
 // kwineffects
 #include <effect/offscreeneffect.h>
 
 // Qt
-#include <QElapsedTimer>
-#include <QHash>
-#include <QPointer>
 
 // std
 #include <memory>
@@ -51,15 +49,6 @@ struct PendingMinimize {
     // Identifies the retry chain that owns this entry, so a timer left over
     // from an earlier minimize of the same window cannot drive a new one.
     quint64 generation = 0;
-};
-
-// When a window last gave Plasma a reason to publish a task button: it was
-// added, or it moved to another output (a task manager that shows only the
-// current screen gets a new delegate then).
-struct WindowHistory {
-    QElapsedTimer sinceAdded;
-    QElapsedTimer sinceOutputChange;
-    const KWin::LogicalOutput* output = nullptr;
 };
 
 class YetAnotherMagicLampEffect : public KWin::OffscreenEffect {
@@ -116,11 +105,11 @@ private:
     void animateMinimize(KWin::EffectWindow* w, const QRectF& target);
     void startUnminimize(KWin::EffectWindow* w);
     void scheduleMinimizeRetry(KWin::EffectWindow* w, quint64 generation);
-    bool taskButtonsSettled(KWin::EffectWindow* w) const;
     void logState(const char* event) const;
 
     std::unique_ptr<CoordinateMapper::OutputManager> m_outputManager;
     std::unique_ptr<CoordinateMapper::GeometryResolver> m_geometryResolver;
+    std::unique_ptr<CoordinateMapper::WindowTracker> m_windowTracker;
 
     Model::Parameters m_modelParameters;
     int m_gridResolution;
@@ -130,7 +119,6 @@ private:
     QMap<KWin::EffectWindow*, PendingMinimize> m_pendingMinimize;
     quint64 m_pendingGeneration = 0;
     int m_retryTimersInFlight = 0;
-    QHash<KWin::EffectWindow*, WindowHistory> m_history;
 };
 
 inline int YetAnotherMagicLampEffect::requestedEffectChainPosition() const

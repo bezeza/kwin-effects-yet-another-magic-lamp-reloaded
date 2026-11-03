@@ -6,6 +6,7 @@ set(effect_SRCS
     geometry/OutputManager.cc
     geometry/RotationAdapter.cc
     geometry/ScaleAdapter.cc
+    geometry/WindowTracker.cc
     Model.cc
     YetAnotherMagicLampEffect.cc
     plugin.cc

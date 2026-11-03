@@ -21,6 +21,7 @@
 #include "Model.h"
 #include "geometry/GeometryResolver.h"
 #include "geometry/OutputManager.h"
+#include "geometry/WindowTracker.h"
 #include "kwincompat.h"
 
 // Auto-generated
@@ -33,6 +34,7 @@
 // Qt
 #include <QDebug>
 #include <QLoggingCategory>
+#include <QPointer>
 #include <QTimer>
 
 // std
@@ -64,6 +66,7 @@ YetAnotherMagicLampEffect::YetAnotherMagicLampEffect()
 {
     m_outputManager = std::make_unique<CoordinateMapper::OutputManager>(KWin::effects);
     m_geometryResolver = std::make_unique<CoordinateMapper::GeometryResolver>(m_outputManager.get());
+    m_windowTracker = std::make_unique<CoordinateMapper::WindowTracker>();
 
     reconfigure(ReconfigureAll);
 
@@ -282,22 +285,12 @@ void YetAnotherMagicLampEffect::logState(const char* event) const
 
 void YetAnotherMagicLampEffect::slotWindowAdded(KWin::EffectWindow* w)
 {
+    if (!m_windowTracker->trackWindow(w)) {
+        return;
+    }
+
     connect(w, &KWin::EffectWindow::minimizedChanged,
         this, &YetAnotherMagicLampEffect::slotMinimizedChanged);
-
-    WindowHistory& history = m_history[w];
-    history.sinceAdded.start();
-    history.sinceOutputChange.start();
-    history.output = w->screen();
-    // The signal's second argument changed type in 6.7 (QRectF -> RectF), so
-    // the slot takes only the window.
-    connect(w, &KWin::EffectWindow::windowFrameGeometryChanged, this, [this](KWin::EffectWindow* window) {
-        auto it = m_history.find(window);
-        if (it != m_history.end() && it->output != window->screen()) {
-            it->output = window->screen();
-            it->sinceOutputChange.start();
-        }
-    });
     logState("window-added");
 }
 
@@ -373,16 +366,6 @@ static constexpr int s_iconGeometryMaxRetries = 6;
 static constexpr int s_settledRetries = 1;
 static constexpr qint64 s_taskButtonsSettleMs = 1000;
 
-bool YetAnotherMagicLampEffect::taskButtonsSettled(KWin::EffectWindow* w) const
-{
-    const auto it = m_history.constFind(w);
-    if (it == m_history.constEnd()) {
-        return true; // not tracked: nothing tells us a button is on its way
-    }
-    return it->sinceAdded.elapsed() >= s_taskButtonsSettleMs
-        && it->sinceOutputChange.elapsed() >= s_taskButtonsSettleMs;
-}
-
 void YetAnotherMagicLampEffect::scheduleMinimizeRetry(KWin::EffectWindow* w, quint64 generation)
 {
     QPointer<KWin::EffectWindow> weakRef(w);
@@ -418,7 +401,7 @@ void YetAnotherMagicLampEffect::scheduleMinimizeRetry(KWin::EffectWindow* w, qui
             animateMinimize(win, *target);
             return;
         }
-        const bool settled = taskButtonsSettled(win);
+        const bool settled = m_windowTracker->taskButtonsSettled(win, s_taskButtonsSettleMs);
         if (it->attempts >= s_iconGeometryMaxRetries
             || (settled && it->attempts >= s_settledRetries)) {
             qCDebug(lcMagicLamp).noquote() << "minimize.no-icon-geometry"
@@ -483,7 +466,7 @@ void YetAnotherMagicLampEffect::slotWindowClosed(KWin::EffectWindow* w)
 
 void YetAnotherMagicLampEffect::slotWindowDeleted(KWin::EffectWindow* w)
 {
-    m_history.remove(w);
+    m_windowTracker->untrackWindow(w);
     m_pendingMinimize.remove(w);
     m_animations.remove(w);
     logState("window-deleted");
