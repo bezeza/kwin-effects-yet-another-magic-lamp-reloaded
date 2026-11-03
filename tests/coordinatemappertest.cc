@@ -12,6 +12,9 @@
 
 #include <QTest>
 
+using CoordinateMapper::OutputInfo;
+using CoordinateMapper::TransformKind;
+
 class CoordinateMapperTest : public QObject {
     Q_OBJECT
 
@@ -20,6 +23,7 @@ private Q_SLOTS:
     void surfaceToGlobal();
     void verticalStackFoolsNearestPanelRule();
     void horizontalNearestPanelRuleMatchesOutput();
+    void globalToNativePixelsRoundTripsFractionalRotatedOutput();
 };
 
 void CoordinateMapperTest::surfaceToGlobal_data()
@@ -71,6 +75,31 @@ void CoordinateMapperTest::horizontalNearestPanelRuleMatchesOutput()
 
     QCOMPARE(CoordinateMapper::centreDistance(panelOnA, window.center()), 1299.0);
     QCOMPARE(CoordinateMapper::centreDistance(panelOnB, window.center()), 807.0);
+}
+
+void CoordinateMapperTest::globalToNativePixelsRoundTripsFractionalRotatedOutput()
+{
+    OutputInfo output;
+    output.id = QStringLiteral("DP-2");
+    output.name = QStringLiteral("DisplayPort-2");
+    output.geometry = QRectF(-1280.0, 0.0, 960.0, 1706.6666667);
+    output.scale = 1.5;
+    output.nativePixelSize = QSize(2560, 1440);
+    output.transformedPixelSize = QSize(1440, 2560);
+    output.transform = TransformKind::Rotate90;
+
+    QVERIFY(output.isValid());
+
+    const QRectF original(-1280.0 + 100.25, 200.5, 300.0, 400.0);
+    const auto nativePixels = CoordinateMapper::globalToNativePixels(original, output);
+    QVERIFY(nativePixels);
+
+    const auto restored = CoordinateMapper::nativePixelsToGlobal(*nativePixels, output);
+    QVERIFY(restored);
+    QVERIFY(qAbs(restored->x() - original.x()) < 1e-9);
+    QVERIFY(qAbs(restored->y() - original.y()) < 1e-9);
+    QVERIFY(qAbs(restored->width() - original.width()) < 1e-9);
+    QVERIFY(qAbs(restored->height() - original.height()) < 1e-9);
 }
 
 QTEST_GUILESS_MAIN(CoordinateMapperTest)

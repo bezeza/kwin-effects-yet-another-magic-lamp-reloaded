@@ -3,6 +3,8 @@ add_subdirectory(kcm)
 set(effect_SRCS
     geometry/CoordinateMapper.cc
     geometry/OutputManager.cc
+    geometry/RotationAdapter.cc
+    geometry/ScaleAdapter.cc
     Model.cc
     YetAnotherMagicLampEffect.cc
     plugin.cc

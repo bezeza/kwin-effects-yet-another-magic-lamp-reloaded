@@ -7,25 +7,41 @@
 
 #pragma once
 
+// Own
+#include "OutputInfo.h"
+
 // Qt
 #include <QPointF>
 #include <QRect>
 #include <QRectF>
 
-// Coordinate conversions the effect relies on, as pure functions on Qt types
-// so they can be tested without a running KWin. All rects are in KWin's
-// logical units; "global" is the compositor space LogicalOutput::geometry()
-// lives in, "surface-local" is relative to a panel surface's top-left corner.
+// std
+#include <optional>
+
+// Coordinate conversions used by the effect. All operations are explicit
+// about their source and destination spaces; task-button geometries supplied
+// in Wayland surface-local logical coordinates must not be passed through the
+// output scale or rotation adapters.
 namespace CoordinateMapper {
 
-// A task button as Plasma publishes it (org_kde_plasma_window
-// .set_minimized_geometry: integers relative to the panel surface) in global
-// coordinates, given the panel's global top-left (KWin::Window::pos()).
+// A task button as Plasma publishes it (relative to the panel surface) in
+// global logical coordinates, given the panel's global logical top-left.
 QRectF surfaceToGlobal(const QRect& surfaceLocal, const QPointF& panelPos);
 
-// Manhattan distance from the centre of @p rect to @p point: how KWin 6.7+
-// ranks panels against a window's centre in Window::iconGeometry(), and how
-// the effect breaks ties between panels on the same output.
+// Manhattan distance from the centre of @p rect to @p point.
 qreal centreDistance(const QRectF& rect, const QPointF& point);
+
+// Maps a logical output-local rectangle to the native, untransformed buffer
+// pixel space of the output.
+std::optional<QRectF> outputLocalToNativePixels(const QRectF& logicalRect, const OutputInfo& output);
+
+// Inverse of outputLocalToNativePixels().
+std::optional<QRectF> nativePixelsToOutputLocal(const QRectF& nativeRect, const OutputInfo& output);
+
+// Maps a global logical rectangle to native, untransformed buffer pixels.
+std::optional<QRectF> globalToNativePixels(const QRectF& globalRect, const OutputInfo& output);
+
+// Inverse of globalToNativePixels().
+std::optional<QRectF> nativePixelsToGlobal(const QRectF& nativeRect, const OutputInfo& output);
 
 } // namespace CoordinateMapper

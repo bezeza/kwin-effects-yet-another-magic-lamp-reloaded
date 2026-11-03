@@ -85,6 +85,9 @@ void OutputManager::addOutput(KWin::LogicalOutput* output)
     entry.connections.append(connect(output, &KWin::LogicalOutput::scaleChanged, this, refresh));
     entry.connections.append(connect(output, &KWin::LogicalOutput::transformChanged, this, refresh));
     entry.connections.append(connect(output, &KWin::LogicalOutput::currentModeChanged, this, refresh));
+    entry.connections.append(connect(output, &QObject::destroyed, this, [this, output]() {
+        removeOutput(output);
+    }));
 
     const QString id = entry.info.id;
     m_entries.insert(output, entry);

@@ -27,7 +27,7 @@
 
 namespace CoordinateMapper {
 
-// Tracks KWin logical outputs and publishes immutable value snapshots.
+// Tracks KWin logical outputs and publishes value snapshots.
 //
 // The manager observes output lifecycle and geometry/scale/transform changes.
 // Consumers should use OutputInfo for calculations and retain the LogicalOutput
