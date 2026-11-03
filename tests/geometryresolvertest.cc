@@ -18,6 +18,7 @@ class GeometryResolverTest : public QObject
 
 private Q_SLOTS:
     void selectsNearestButtonOnTargetOutput();
+    void preservesFirstCandidateOnDistanceTie();
     void ignoresCloserButtonOnAnotherOutput();
     void returnsNoButtonWhenOnlyOtherOutputsExist();
     void ignoresInvalidButtonGeometry();
@@ -40,6 +41,24 @@ void GeometryResolverTest::selectsNearestButtonOnTargetOutput()
     const auto result = nearestButtonOnOutput(candidates, QPointF(500.0, 740.0));
     QVERIFY(result);
     QCOMPARE(*result, nearButton);
+}
+
+
+void GeometryResolverTest::preservesFirstCandidateOnDistanceTie()
+{
+    const QRectF firstPanel(0.0, 0.0, 100.0, 100.0);
+    const QRectF secondPanel(200.0, 0.0, 100.0, 100.0);
+    const QRectF firstButton(10.0, 10.0, 20.0, 20.0);
+    const QRectF secondButton(210.0, 10.0, 20.0, 20.0);
+
+    const QList<PanelButtonCandidate> candidates{
+        {true, firstPanel, firstButton},
+        {true, secondPanel, secondButton},
+    };
+
+    const auto result = nearestButtonOnOutput(candidates, QPointF(150.0, 50.0));
+    QVERIFY(result);
+    QCOMPARE(*result, firstButton);
 }
 
 void GeometryResolverTest::ignoresCloserButtonOnAnotherOutput()

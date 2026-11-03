@@ -10,6 +10,7 @@
 
 // KWin
 #include <core/output.h>
+#include <effect/effectwindow.h>
 
 namespace CoordinateMapper {
 

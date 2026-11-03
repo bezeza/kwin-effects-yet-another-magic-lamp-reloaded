@@ -32,8 +32,6 @@ class WindowTracker;
 // kwineffects
 #include <effect/offscreeneffect.h>
 
-// Qt
-
 // std
 #include <memory>
 
