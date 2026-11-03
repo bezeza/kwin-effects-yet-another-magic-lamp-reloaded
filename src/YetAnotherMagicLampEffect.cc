@@ -30,8 +30,6 @@
 #include <core/renderviewport.h>
 #include <core/output.h>
 
-// kwin internals, for the per-panel task-button geometries
-
 // Qt
 #include <QDebug>
 #include <QLoggingCategory>

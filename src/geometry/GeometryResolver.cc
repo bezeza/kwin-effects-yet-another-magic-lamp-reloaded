@@ -18,6 +18,7 @@
 
 // Qt
 #include <QLoggingCategory>
+#include <QRect>
 
 // std
 #include <optional>

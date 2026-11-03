@@ -44,10 +44,10 @@ void GeometryResolverTest::selectsNearestButtonOnTargetOutput()
 
 void GeometryResolverTest::ignoresCloserButtonOnAnotherOutput()
 {
-    const QRectF closerPanel(0.0, 700.0, 1024.0, 68.0);
-    const QRectF targetPanel(1024.0, 700.0, 1024.0, 68.0);
-    const QRectF otherButton(400.0, 710.0, 40.0, 40.0);
-    const QRectF targetButton(1400.0, 710.0, 40.0, 40.0);
+    const QRectF closerPanel(1400.0, 700.0, 1024.0, 68.0);
+    const QRectF targetPanel(0.0, 700.0, 1024.0, 68.0);
+    const QRectF otherButton(1800.0, 710.0, 40.0, 40.0);
+    const QRectF targetButton(400.0, 710.0, 40.0, 40.0);
 
     const QList<PanelButtonCandidate> candidates{
         {false, closerPanel, otherButton},
