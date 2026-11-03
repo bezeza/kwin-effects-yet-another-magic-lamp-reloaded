@@ -7,6 +7,7 @@
 
 // Own
 #include "GeometryResolver.h"
+#include "CoordinateMapper.h"
 #include "OutputManager.h"
 
 // KWin

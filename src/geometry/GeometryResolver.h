@@ -8,8 +8,6 @@
 #pragma once
 
 // Own
-#include "CoordinateMapper.h"
-
 // Qt
 #include <QList>
 #include <QPointF>
@@ -64,7 +62,7 @@ inline std::optional<QRectF> nearestButtonOnOutput(
             continue;
         }
 
-        const qreal distance = centreDistance(panel, windowCenter);
+        const qreal distance = (panel.center() - windowCenter).manhattanLength();
         if (!std::isfinite(distance)) {
             continue;
         }
