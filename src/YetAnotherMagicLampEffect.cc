@@ -19,7 +19,8 @@
 // Own
 #include "YetAnotherMagicLampEffect.h"
 #include "Model.h"
-#include "geometry/CoordinateMapper.h"
+#include "geometry/GeometryResolver.h"
+#include "geometry/OutputManager.h"
 #include "kwincompat.h"
 
 // Auto-generated
@@ -30,9 +31,6 @@
 #include <core/output.h>
 
 // kwin internals, for the per-panel task-button geometries
-#include <wayland/plasmawindowmanagement.h>
-#include <wayland_server.h>
-#include <window.h>
 
 // Qt
 #include <QDebug>
@@ -42,7 +40,6 @@
 // std
 #include <chrono>
 #include <cmath>
-#include <limits>
 
 // Diagnostics are off by default. Enable them with
 // QT_LOGGING_RULES="kwin_effect_yetanothermagiclamp.debug=true".
@@ -51,91 +48,6 @@ Q_LOGGING_CATEGORY(lcMagicLamp, "kwin_effect_yetanothermagiclamp", QtWarningMsg)
 static quintptr windowId(const void* window)
 {
     return reinterpret_cast<quintptr>(window);
-}
-
-// Plasma publishes a minimized geometry for a window from every panel that has
-// a task manager showing it, each relative to its own panel surface. KWin's
-// Window::iconGeometry() picks among them by the distance between the panel
-// centre and the window centre, regardless of the output: with stacked
-// outputs, the bottom panel of the upper output is "closer" to windows in the
-// upper half of the lower output than that output's own panel.
-//
-// Returns the button @p window got from a panel on @p output, in global
-// coordinates, or an invalid rect. When more than one panel on the output
-// published one, the panel nearest to @p center wins, as in KWin.
-static QRectF buttonOnOutput(KWin::WaylandServer* server, const KWin::Window* window,
-    const KWin::LogicalOutput* output, const QPointF& center, quintptr logId)
-{
-    if (!window->windowManagementInterface()) {
-        return QRectF();
-    }
-    QRectF best;
-    qreal bestDistance = std::numeric_limits<qreal>::max();
-    const auto geometries = window->windowManagementInterface()->minimizedGeometries();
-    for (auto it = geometries.constBegin(); it != geometries.constEnd(); ++it) {
-        KWin::Window* panel = server->findWindow(it.key());
-        if (!panel) {
-            continue;
-        }
-        const QRectF panelRect = panel->frameGeometry();
-        const QRectF button = CoordinateMapper::surfaceToGlobal(QRect(it.value()), panel->pos());
-        qCDebug(lcMagicLamp).noquote() << "button.candidate"
-                                       << "window=" << logId
-                                       << "owner=" << windowId(window)
-                                       << "panel=" << windowId(panel)
-                                       << "panelGeometry=" << panelRect
-                                       << "panelOutput=" << (panel->output() ? panel->output()->name() : QStringLiteral("null"))
-                                       << "button=" << button;
-        if (panel->output() != output || !button.isValid()) {
-            continue;
-        }
-        const qreal distance = CoordinateMapper::centreDistance(panelRect, center);
-        if (distance < bestDistance) {
-            bestDistance = distance;
-            best = button;
-        }
-    }
-    return best;
-}
-
-// The point the window shrinks into, or an invalid rect when there is none.
-//
-// Only a task button on the window's own output counts. A transient without a
-// button of its own uses its main window's, as KWin does. Nothing else is
-// taken: not KWin's iconGeometry() (it may be a button on another output), not
-// a panel position, not a button mapped over from another output. An invalid
-// result means the window minimizes and restores the normal way, unanimated.
-//
-// The first check and every retry go through this one function.
-static QRectF resolveIconGeometry(KWin::EffectWindow* w)
-{
-    KWin::Window* window = w->window();
-    KWin::WaylandServer* server = KWin::waylandServer();
-    if (!window || !server) {
-        qCDebug(lcMagicLamp).noquote() << "resolve.unsupported"
-                                       << "window=" << windowId(w);
-        return QRectF();
-    }
-
-    const KWin::LogicalOutput* output = window->output();
-    const QPointF center = QRectF(window->frameGeometry()).center();
-    QRectF target = buttonOnOutput(server, window, output, center, windowId(w));
-    if (!target.isValid()) {
-        const auto mainWindows = window->mainWindows();
-        for (const KWin::Window* mainWindow : mainWindows) {
-            target = buttonOnOutput(server, mainWindow, output, center, windowId(w));
-            if (target.isValid()) {
-                break;
-            }
-        }
-    }
-    qCDebug(lcMagicLamp).noquote() << "resolve"
-                                   << "window=" << windowId(w)
-                                   << "windowGeometry=" << QRectF(w->frameGeometry())
-                                   << "windowOutput=" << (output ? output->name() : QStringLiteral("null"))
-                                   << "kwinIconGeometry=" << QRectF(w->iconGeometry())
-                                   << "target=" << target;
-    return target;
 }
 
 enum ShapeCurve {
@@ -152,6 +64,9 @@ enum ShapeCurve {
 
 YetAnotherMagicLampEffect::YetAnotherMagicLampEffect()
 {
+    m_outputManager = std::make_unique<CoordinateMapper::OutputManager>(KWin::effects);
+    m_geometryResolver = std::make_unique<CoordinateMapper::GeometryResolver>(m_outputManager.get());
+
     reconfigure(ReconfigureAll);
 
     for (KWin::EffectWindow* w : KWin::effects->stackingOrder()) {
@@ -403,8 +318,8 @@ void YetAnotherMagicLampEffect::startMinimize(KWin::EffectWindow* w)
         return;
     }
 
-    const QRectF target = resolveIconGeometry(w);
-    if (!target.isValid()) {
+    const auto target = m_geometryResolver->resolve(w);
+    if (!target) {
         // On Wayland the Plasma taskbar publishes the button geometry
         // asynchronously (after QML layout). Keep the window visible and retry
         // until it arrives; scheduleMinimizeRetry() bounds the wait.
@@ -417,7 +332,7 @@ void YetAnotherMagicLampEffect::startMinimize(KWin::EffectWindow* w)
         return;
     }
 
-    animateMinimize(w, target);
+    animateMinimize(w, *target);
 }
 
 // Starts the minimize animation towards @p target, which the caller resolved;
@@ -497,12 +412,12 @@ void YetAnotherMagicLampEffect::scheduleMinimizeRetry(KWin::EffectWindow* w, qui
         // Resolved once and handed on as is: resolving again in
         // startMinimize() could come back empty and leave this entry, and the
         // visible reference it holds, behind with no timer to release it.
-        const QRectF target = resolveIconGeometry(win);
-        if (target.isValid()) {
+        const auto target = m_geometryResolver->resolve(win);
+        if (target) {
             qCDebug(lcMagicLamp).noquote() << "minimize.icon-geometry-arrived"
                                            << "window=" << windowId(win)
                                            << "attempts=" << it->attempts;
-            animateMinimize(win, target);
+            animateMinimize(win, *target);
             return;
         }
         const bool settled = taskButtonsSettled(win);
@@ -545,15 +460,15 @@ void YetAnotherMagicLampEffect::startUnminimize(KWin::EffectWindow* w)
     }
 
     // No button on the window's output: restore the normal way, unanimated.
-    const QRectF target = resolveIconGeometry(w);
-    if (!target.isValid()) {
+    const auto target = m_geometryResolver->resolve(w);
+    if (!target) {
         return;
     }
 
     AnimationData& animData = m_animations[w];
     animData.model.setWindow(w);
     animData.model.setParameters(m_modelParameters);
-    animData.model.setIconGeometry(target);
+    animData.model.setIconGeometry(*target);
     animData.model.start(Model::AnimationKind::Unminimize);
 
     redirect(w);

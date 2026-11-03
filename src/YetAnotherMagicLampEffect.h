@@ -22,6 +22,12 @@
 #include "Model.h"
 #include "common.h"
 
+// Forward declarations
+namespace CoordinateMapper {
+class GeometryResolver;
+class OutputManager;
+}
+
 // kwineffects
 #include <effect/offscreeneffect.h>
 
@@ -29,6 +35,9 @@
 #include <QElapsedTimer>
 #include <QHash>
 #include <QPointer>
+
+// std
+#include <memory>
 
 struct AnimationData {
     Model model;
@@ -109,6 +118,9 @@ private:
     void scheduleMinimizeRetry(KWin::EffectWindow* w, quint64 generation);
     bool taskButtonsSettled(KWin::EffectWindow* w) const;
     void logState(const char* event) const;
+
+    std::unique_ptr<CoordinateMapper::OutputManager> m_outputManager;
+    std::unique_ptr<CoordinateMapper::GeometryResolver> m_geometryResolver;
 
     Model::Parameters m_modelParameters;
     int m_gridResolution;

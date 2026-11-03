@@ -31,3 +31,10 @@ add_executable(rotationadaptertest
 target_include_directories(rotationadaptertest PRIVATE ../src)
 target_link_libraries(rotationadaptertest Qt6::Core Qt6::Test)
 add_test(NAME rotationadaptertest COMMAND rotationadaptertest)
+
+add_executable(geometryresolvertest
+    geometryresolvertest.cc
+)
+target_include_directories(geometryresolvertest PRIVATE ../src)
+target_link_libraries(geometryresolvertest Qt6::Core Qt6::Test)
+add_test(NAME geometryresolvertest COMMAND geometryresolvertest)

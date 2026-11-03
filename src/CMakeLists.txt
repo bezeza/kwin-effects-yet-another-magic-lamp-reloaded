@@ -2,6 +2,7 @@ add_subdirectory(kcm)
 
 set(effect_SRCS
     geometry/CoordinateMapper.cc
+    geometry/GeometryResolver.cc
     geometry/OutputManager.cc
     geometry/RotationAdapter.cc
     geometry/ScaleAdapter.cc
