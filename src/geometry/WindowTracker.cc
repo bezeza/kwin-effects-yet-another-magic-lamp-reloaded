@@ -105,7 +105,7 @@ void WindowTracker::updateWindowOutput(KWin::EffectWindow* window)
         return;
     }
 
-    const KWin::LogicalOutput* output = window->screen();
+    KWin::LogicalOutput* output = window->screen();
     if (outputIdentityChanged(it->output.data(), output)) {
         it->output = output;
         it->sinceOutputChange.start();
@@ -135,7 +135,7 @@ void WindowTracker::resetWindowsOnOutput(KWin::LogicalOutput* output)
     }
 
     for (auto it = m_entries.begin(); it != m_entries.end(); ++it) {
-        if (it->output == output) {
+        if (it->output.data() == output) {
             // Scale, mode, transform, or layout changes can make Plasma relayout
             // its task manager even though the LogicalOutput pointer stays the same.
             it->sinceOutputChange.start();
