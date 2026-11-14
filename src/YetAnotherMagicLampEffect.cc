@@ -42,6 +42,7 @@
 // std
 #include <chrono>
 #include <cmath>
+#include <optional>
 
 // Diagnostics are off by default. Enable them with
 // QT_LOGGING_RULES="kwin_effect_yetanothermagiclamp.debug=true".
