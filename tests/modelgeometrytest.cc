@@ -9,6 +9,8 @@
 
 #include <QTest>
 
+#include <cmath>
+
 #include <limits>
 
 class ModelGeometryTest : public QObject

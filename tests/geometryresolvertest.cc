@@ -9,6 +9,8 @@
 
 #include <QTest>
 
+#include <limits>
+
 using CoordinateMapper::PanelButtonCandidate;
 using CoordinateMapper::nearestButtonOnOutput;
 
