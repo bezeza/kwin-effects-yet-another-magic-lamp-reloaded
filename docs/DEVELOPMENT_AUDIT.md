@@ -60,16 +60,22 @@ manager, Wayland server, or compositor render path.
 - Fedora, Arch, openSUSE Tumbleweed, and Ubuntu workflow definitions enable `BUILD_TESTING`, build the project, and invoke
   CTest.
 - The workflows use read-only repository-content permissions, concurrency cancellation, and bounded job timeouts.
-- The branch filters cover the stacked `fix/**` development branches.
+- The updated workflow definitions add `fix/**` branch coverage, but they currently exist only in PR #5's branch.
 
-**Blocking infrastructure finding:** the four PR head commits currently have zero workflow runs and zero reported commit
-statuses. No distro build or QtTest result can be treated as passed. The repository's Actions availability/settings need to
-be checked by an owner, and the workflows must be observed running after that.
+**Blocking CI/bootstrap finding:** the default branch `master` still contains the older workflow definitions. Their
+`push` and `pull_request` filters target `master` only. PR #3 targets `feature/coordinate-mapper-2.0`; PRs #4–#7
+target stacked `fix/**` branches. Those PRs therefore do not match the workflows currently present on the default branch.
 
-The workflows are introduced by PR #5, so PR #5 itself may not run them while its base branch lacks those files. PR #6 and
-PR #7 inherit the workflows, and their base branches match the configured `fix/**` pull-request filter. Their empty run
-lists are therefore not explained by the branch-name filter; repository Actions settings or policy still need owner-side
-verification.
+PR #5 introduces replacement workflows with `fix/**` filters, but a workflow file added only in a non-default stacked
+branch cannot bootstrap its own execution for the other stacked PRs. The updated definitions need to reach the default
+branch before they can reliably trigger validation for subsequent `fix/**` pull requests.
+
+There is a second, separate signal: PRs #1 and #2 target `master` and should match the legacy pull-request filters, yet
+the repository-wide Actions run list and the inspected commit statuses still contain no runs/checks. That warrants an
+owner-side check of whether GitHub Actions and the individual workflows are enabled or restricted by repository policy.
+
+No distro build or QtTest result can be treated as passed. Before relying on CI, verify the repository Actions settings and
+ensure a workflow present on the default branch covers the intended PR base branches.
 
 ### PR #6 — animation and panel lifecycle recovery
 

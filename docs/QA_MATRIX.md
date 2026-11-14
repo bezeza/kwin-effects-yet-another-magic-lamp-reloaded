@@ -74,7 +74,7 @@ and does not trigger the zero-step loop hazard. F-07 must still be tested, and t
 | L-14 | Rapid minimize/restore/re-minimize sequence | Stale generations cannot affect the newest attempt | MANUAL | PENDING |
 | L-15 | Re-minimize during recovery pause | Retarget current button and resume; no frozen animation | MANUAL | PENDING |
 | L-16 | Re-minimize with no button target | Cancel stale animation; wait boundedly or fall back | MANUAL | PENDING |
-| L-16 | Start with paused running timeline | Clear pause and reverse; restore may explicitly re-pause | AUTOMATED | PENDING |
+| L-17 | Start with paused running timeline | Clear pause and reverse; restore may explicitly re-pause | AUTOMATED | PENDING |
 
 ## 5. Animation settings and performance
 
