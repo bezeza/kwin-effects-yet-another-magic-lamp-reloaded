@@ -72,6 +72,7 @@ remain outside the current CI matrix.
 | L-13 | Unload/reload the effect during pending timers | No callback reaches destroyed effect state | MANUAL | PENDING |
 | L-14 | Rapid minimize/restore/re-minimize sequence | Stale generations cannot affect the newest attempt | MANUAL | PENDING |
 | L-15 | Re-minimize during recovery pause | Retarget current button and resume; no frozen animation | MANUAL | PENDING |
+| L-16 | Start with paused running timeline | Clear pause and reverse; restore may explicitly re-pause | AUTOMATED | PENDING |
 
 ## 5. Animation settings and performance
 

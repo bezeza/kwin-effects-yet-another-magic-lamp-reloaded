@@ -70,6 +70,7 @@ be checked by an owner, and the workflows must be observed running after that.
 - Retry chains are bounded and generation-tagged so stale timers cannot drive a newer attempt.
 - A new minimize during recovery retargets the existing model before reversing
   it and clears the pause; failed retargets release offscreen redirection.
+- A pure start-state helper has regression tests for paused timelines and fresh starts.
 - Closing panels are excluded from task-button candidate selection.
 - New panels restart the settling window and pending recovery/retry work.
 - The recovery policy is isolated in a KWin-independent helper and has focused policy tests.
