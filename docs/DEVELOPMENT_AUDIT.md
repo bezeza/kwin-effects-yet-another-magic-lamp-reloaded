@@ -73,8 +73,11 @@ verification.
 
 - Active models are paused during output/panel changes and are retargeted before resuming.
 - Retry chains are bounded and generation-tagged so stale timers cannot drive a newer attempt.
-- A new minimize during recovery retargets the model before reversing it and clears its pause; failed retargets release offscreen redirection.
-- If a rapid re-minimize has no current task-button target, the old animation is cancelled and unredirected while a bounded pending-minimize reference keeps the window visible until the target arrives or the effect falls back.
+- A new minimize during recovery retargets the model before reversing it and clears its pause.
+- Failed retargets release offscreen redirection.
+- If a rapid re-minimize has no task-button target, the old animation is cancelled and unredirected.
+  A bounded pending reference keeps the window visible while the resolver retries.
+  If no target appears, the reference is released and KWin hides the window normally.
 - A new minimize during recovery retargets the existing model before reversing
   it and clears the pause; failed retargets release offscreen redirection.
 - A pure start-state helper has regression tests for paused timelines and fresh starts.
