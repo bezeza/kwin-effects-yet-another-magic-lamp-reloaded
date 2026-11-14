@@ -18,6 +18,7 @@
 
 // Own
 #include "Model.h"
+#include "geometry/AnimationRecovery.h"
 #include "geometry/ModelGeometry.h"
 #include "kwincompat.h"
 
