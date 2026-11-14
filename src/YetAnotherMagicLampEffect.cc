@@ -94,6 +94,9 @@ YetAnotherMagicLampEffect::YetAnotherMagicLampEffect()
 
 YetAnotherMagicLampEffect::~YetAnotherMagicLampEffect()
 {
+    // The tracker callback targets this effect and must be disconnected before
+    // the animation and pending-minimize maps are destroyed.
+    m_windowTracker.reset();
 }
 
 void YetAnotherMagicLampEffect::reconfigure(ReconfigureFlags flags)
