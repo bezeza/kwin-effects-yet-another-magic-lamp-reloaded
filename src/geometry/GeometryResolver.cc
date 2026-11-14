@@ -22,6 +22,8 @@
 #include <QLoggingCategory>
 #include <QRect>
 
+#include <algorithm>
+
 // std
 #include <optional>
 
@@ -38,7 +40,7 @@ quintptr windowId(const void* window)
 
 std::optional<QRectF> buttonOnOutput(KWin::WaylandServer* server,
     const KWin::Window* window, KWin::LogicalOutput* output,
-    const QPointF& center, quintptr logId)
+    const QPointF& center, quintptr logId, const QList<QPointer<KWin::Window>>& closingPanels)
 {
     if (!window || !window->windowManagementInterface()) {
         return std::nullopt;
@@ -66,7 +68,9 @@ std::optional<QRectF> buttonOnOutput(KWin::WaylandServer* server,
                                               << "panelOutput=" << (panel->output() ? panel->output()->name() : QStringLiteral("null"))
                                               << "button=" << button;
 
-        candidates.append({belongsToTargetOutput, panelRect, button});
+        const bool available = std::none_of(closingPanels.cbegin(), closingPanels.cend(),
+            [panel](const QPointer<KWin::Window>& closingPanel) { return closingPanel.data() == panel; });
+        candidates.append({belongsToTargetOutput, panelRect, button, available});
     }
 
     return nearestButtonOnOutput(candidates, center);
@@ -77,6 +81,26 @@ std::optional<QRectF> buttonOnOutput(KWin::WaylandServer* server,
 GeometryResolver::GeometryResolver(OutputManager* outputs)
     : m_outputs(outputs)
 {
+}
+
+void GeometryResolver::panelAboutToClose(KWin::Window* panel)
+{
+    if (!panel) {
+        return;
+    }
+
+    for (auto it = m_closingPanels.begin(); it != m_closingPanels.end();) {
+        if (it->isNull()) {
+            it = m_closingPanels.erase(it);
+        } else {
+            if (it->data() == panel) {
+                return;
+            }
+            ++it;
+        }
+    }
+
+    m_closingPanels.append(QPointer<KWin::Window>(panel));
 }
 
 std::optional<QRectF> GeometryResolver::resolve(KWin::EffectWindow* effectWindow) const
@@ -97,11 +121,11 @@ std::optional<QRectF> GeometryResolver::resolve(KWin::EffectWindow* effectWindow
     }
 
     const QPointF center = QRectF(window->frameGeometry()).center();
-    std::optional<QRectF> target = buttonOnOutput(server, window, output, center, windowId(effectWindow));
+    std::optional<QRectF> target = buttonOnOutput(server, window, output, center, windowId(effectWindow), m_closingPanels);
     if (!target) {
         const auto mainWindows = window->mainWindows();
         for (const KWin::Window* mainWindow : mainWindows) {
-            target = buttonOnOutput(server, mainWindow, output, center, windowId(effectWindow));
+            target = buttonOnOutput(server, mainWindow, output, center, windowId(effectWindow), m_closingPanels);
             if (target) {
                 break;
             }

@@ -1,0 +1,73 @@
+/*
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License, either version 2 of
+ * the License, or (at your option) any later version.
+ */
+
+#pragma once
+
+namespace CoordinateMapper {
+
+// The start path always clears a recovery pause. If the timeline is still
+// in flight, the caller reverses it instead of replacing the current stage.
+struct AnimationStartState {
+    bool paused = false;
+    bool done = true;
+    bool reverseTimeline = false;
+};
+
+constexpr AnimationStartState prepareAnimationStart(
+    AnimationStartState current, bool timelineRunning) noexcept
+{
+    current.paused = false;
+    current.reverseTimeline = timelineRunning;
+    if (timelineRunning) {
+        current.done = false;
+    }
+    return current;
+}
+
+enum class MissingMinimizeTargetAction {
+    WaitForTarget,
+    CancelExistingAnimation,
+};
+
+constexpr MissingMinimizeTargetAction decideMissingMinimizeTarget(
+    bool hasExistingAnimation) noexcept
+{
+    return hasExistingAnimation
+        ? MissingMinimizeTargetAction::CancelExistingAnimation
+        : MissingMinimizeTargetAction::WaitForTarget;
+}
+
+enum class AnimationRecoveryDecision {
+    Retry,
+    Resume,
+    Drop,
+};
+
+// Decide whether a paused animation can be recovered without depending on
+// KWin objects or timers. A missing task-button target is retried while the
+// task manager is still settling, even if the user restored the window during
+// the pause. Once the layout has settled, the effect falls back to KWin.
+constexpr AnimationRecoveryDecision decideAnimationRecovery(
+    bool windowAlive,
+    bool fullScreenEffectActive,
+    bool targetReady,
+    bool taskButtonsSettled,
+    int attempt,
+    int maxAttempts) noexcept
+{
+    if (!windowAlive || fullScreenEffectActive) {
+        return AnimationRecoveryDecision::Drop;
+    }
+    if (targetReady) {
+        return AnimationRecoveryDecision::Resume;
+    }
+    if (!taskButtonsSettled && maxAttempts > 0 && attempt < maxAttempts) {
+        return AnimationRecoveryDecision::Retry;
+    }
+    return AnimationRecoveryDecision::Drop;
+}
+
+} // namespace CoordinateMapper

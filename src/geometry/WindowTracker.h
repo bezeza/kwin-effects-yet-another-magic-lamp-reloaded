@@ -45,6 +45,9 @@ public:
     bool isTracked(KWin::EffectWindow* window) const;
     bool taskButtonsSettled(KWin::EffectWindow* window, qint64 settleMs) const;
 
+    // Reset the settling window when Plasma task-manager panels are recreated.
+    void notifyTaskButtonsMayChange();
+
     // Pure threshold logic, exposed for deterministic unit tests.
     static bool hasSettled(qint64 sinceAddedMs, qint64 sinceOutputChangeMs, qint64 settleMs)
     {
