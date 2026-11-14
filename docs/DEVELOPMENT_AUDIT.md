@@ -95,6 +95,19 @@ ensure a workflow present on the default branch covers the intended PR base bran
 **Remaining verification:** the recovery tests cover decisions, not actual signal ordering or rendering. A nested KWin
 session is still required for panel replacement, hotplug, fullscreen takeover, rapid restore, and effect-unload scenarios.
 
+## Integration path and PR #2 dependency
+
+PR #2 is still open against `master` at head `5a639f8`. The `feature/coordinate-mapper-2.0` branch used as PR #3's base is a descendant of that PR #2 head and is 11 commits ahead of it. PR #3–#7 are therefore stacked on top of a feature branch that already contains PR #2's history; they are not a direct stack on `master`.
+
+Merging PR #3 into its current base, then #4, #5, #6, and #7 into their respective intermediate branches, does not by itself deliver the resulting code to `master`. Before integration, choose one explicit route:
+
+1. Merge PR #2 first, then retarget the root of the remaining stack after checking the resulting diff against the updated `master`; or
+2. Use one integration PR from the feature branch (updated by the stacked PRs) to `master`, and treat PR #2 as superseded by that integration.
+
+Do not merge overlapping PR #2 and an integration PR independently. Keep this decision open until the stack has successful CI and the required runtime QA.
+
+A separate draft PR #8 now proposes bringing the updated CI workflows onto `master`. It is not merged, so the default-branch workflow configuration is unchanged.
+
 ## Historical incident
 
 The 3 November main-desktop freeze and the morning nested-KWin Window View crashes are separate incidents. The freeze
