@@ -82,10 +82,12 @@ public:
      * Updates the model to @p milliseconds.
      **/
     void advance(std::chrono::milliseconds presentTime);
+
+    // Pause without losing the current stage or timeline progress.
     void pause();
     void resume();
 
-    // Recalculate the target geometry without resetting the current stage or timeline progress.
+    // Recalculate the target without resetting the current stage or timeline progress.
     bool retargetIconGeometry(const QRectF& rect);
 
     /**

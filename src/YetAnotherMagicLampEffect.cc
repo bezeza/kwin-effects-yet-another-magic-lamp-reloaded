@@ -193,7 +193,9 @@ void YetAnotherMagicLampEffect::reconfigure(ReconfigureFlags flags)
 void YetAnotherMagicLampEffect::prePaintScreen(KWin::ScreenPrePaintData& data, std::chrono::milliseconds presentTime)
 {
     for (AnimationData& animData : m_animations) {
-        animData.model.advance(presentTime);
+        if (animData.recoveryGeneration == 0) {
+            animData.model.advance(presentTime);
+        }
     }
 
     data.mask |= PAINT_SCREEN_WITH_TRANSFORMED_WINDOWS;
@@ -614,13 +616,14 @@ void YetAnotherMagicLampEffect::slotWindowOutputChanged(KWin::EffectWindow* wind
     }
 
     auto pending = m_pendingMinimize.find(window);
-    if (pending != m_pendingMinimize.end()) {
+    const bool hasPendingMinimize = pending != m_pendingMinimize.end();
+    if (hasPendingMinimize) {
         pending->attempts = 0;
         pending->generation = ++m_pendingGeneration;
         scheduleMinimizeRetry(window, pending->generation);
     }
 
-    if (hasAnimation || pending != m_pendingMinimize.end()) {
+    if (hasAnimation || hasPendingMinimize) {
         qCDebug(lcMagicLamp).noquote() << "window.output-changed"
                                        << "window=" << windowId(window)
                                        << "animation-recovery=" << hasAnimation;

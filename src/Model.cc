@@ -231,7 +231,6 @@ void Model::advance(std::chrono::milliseconds presentTime)
     }
 }
 
-
 void Model::pause()
 {
     if (m_paused) {
