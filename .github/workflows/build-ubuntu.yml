@@ -22,7 +22,6 @@ jobs:
         run: apt update && apt install -y bash
 
       - name: Check KWin version
-        id: kwin-version
         shell: bash
         run: |
           version=$(apt-cache policy kwin-dev | awk '/Candidate:/ {print $2}')
@@ -31,9 +30,17 @@ jobs:
             echo "skip=true" >> "$GITHUB_ENV"
             exit 0
           fi
-          major=$(echo "$version" | grep -oP '^\d+' || true)
-          minor=$(echo "$version" | grep -oP '^\d+\.\K\d+' || true)
+          # Debian versions may optionally start with an epoch (for example, 1:6.6.2).
+          version="${version#*:}"
           echo "Available kwin-dev: $version"
+          if [[ "$version" =~ ^([0-9]+)\.([0-9]+) ]]; then
+            major="${BASH_REMATCH[1]}"
+            minor="${BASH_REMATCH[2]}"
+          else
+            echo "Could not parse the KWin package version: $version"
+            echo "skip=true" >> "$GITHUB_ENV"
+            exit 0
+          fi
           if [[ -z "$major" || -z "$minor" ]] || [[ "$major" -lt 6 ]] || { [[ "$major" -eq 6 ]] && [[ "$minor" -lt 6 ]]; }; then
             echo "KWin $version does not meet the minimum requirement of 6.6."
             echo "skip=true" >> "$GITHUB_ENV"
