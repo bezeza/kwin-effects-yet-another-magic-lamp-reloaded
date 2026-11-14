@@ -25,6 +25,8 @@ private Q_SLOTS:
     void rejectsNonFiniteInputs();
     void calculatesShapeFactorWithFractionalGeometry();
     void rejectsNonFiniteShapeFactor();
+    void recalculatesGeometryForNewTarget();
+    void rejectsInvalidRetargetGeometry();
 };
 
 void ModelGeometryTest::acceptsFinitePositiveRectangles()
@@ -102,6 +104,32 @@ void ModelGeometryTest::rejectsNonFiniteShapeFactor()
 
     QVERIFY(!ModelGeometry::shapeFactor(Direction::Top, window, icon, 0,
         std::numeric_limits<qreal>::quiet_NaN()));
+}
+
+void ModelGeometryTest::recalculatesGeometryForNewTarget()
+{
+    const QRectF window(100, 100, 800, 600);
+    const QRectF firstTarget(400, 0, 40, 40);
+    const QRectF movedTarget(400, 150, 40, 40);
+
+    const auto first = ModelGeometry::geometryForTarget(Direction::Top, window, firstTarget, 10, 0.2);
+    const auto moved = ModelGeometry::geometryForTarget(Direction::Top, window, movedTarget, 10, 0.2);
+
+    QVERIFY(first);
+    QVERIFY(moved);
+    QCOMPARE(first->bumpDistance, 0.0);
+    QCOMPARE(moved->bumpDistance, 100.0);
+    QVERIFY(first->shapeFactor != moved->shapeFactor);
+    QVERIFY(std::isfinite(moved->shapeFactor));
+}
+
+void ModelGeometryTest::rejectsInvalidRetargetGeometry()
+{
+    const QRectF window(100, 100, 800, 600);
+
+    QVERIFY(!ModelGeometry::geometryForTarget(Direction::Top, window, QRectF(), 10, 0.2));
+    QVERIFY(!ModelGeometry::geometryForTarget(Direction::Top, window,
+        QRectF(400, 0, 40, 40), 10, std::numeric_limits<qreal>::quiet_NaN()));
 }
 
 QTEST_GUILESS_MAIN(ModelGeometryTest)

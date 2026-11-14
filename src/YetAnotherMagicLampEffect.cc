@@ -300,7 +300,8 @@ void YetAnotherMagicLampEffect::logState(const char* event) const
                                    << "event=" << event
                                    << "pending=" << m_pendingMinimize.size()
                                    << "animations=" << m_animations.size()
-                                   << "retryTimers=" << m_retryTimersInFlight;
+                                   << "retryTimers=" << m_retryTimersInFlight
+                                   << "recoveryTimers=" << m_recoveryTimersInFlight;
 }
 
 void YetAnotherMagicLampEffect::slotWindowAdded(KWin::EffectWindow* w)
@@ -352,6 +353,8 @@ void YetAnotherMagicLampEffect::startMinimize(KWin::EffectWindow* w)
 void YetAnotherMagicLampEffect::animateMinimize(KWin::EffectWindow* w, const QRectF& target)
 {
     AnimationData& animData = m_animations[w];
+    animData.recoveryAttempts = 0;
+    animData.recoveryGeneration = 0;
     animData.model.setWindow(w);
     animData.model.setParameters(m_modelParameters);
     qCDebug(lcMagicLamp).noquote() << "minimize.target"
@@ -389,8 +392,96 @@ void YetAnotherMagicLampEffect::animateMinimize(KWin::EffectWindow* w, const QRe
 // still get a button; for any other window one more check is enough.
 static constexpr int s_iconGeometryRetryIntervalMs = 150;
 static constexpr int s_iconGeometryMaxRetries = 6;
+static constexpr int s_animationRecoveryMaxRetries = 10;
 static constexpr int s_settledRetries = 1;
 static constexpr qint64 s_taskButtonsSettleMs = 1000;
+
+void YetAnotherMagicLampEffect::queueAnimationRecovery(KWin::EffectWindow* w)
+{
+    auto it = m_animations.find(w);
+    if (it == m_animations.end()) {
+        return;
+    }
+
+    it->model.pause();
+    it->recoveryAttempts = 0;
+    it->recoveryGeneration = ++m_recoveryGeneration;
+    scheduleAnimationRecovery(w, it->recoveryGeneration);
+}
+
+void YetAnotherMagicLampEffect::scheduleAnimationRecovery(KWin::EffectWindow* w, quint64 generation)
+{
+    QPointer<KWin::EffectWindow> weakRef(w);
+    ++m_recoveryTimersInFlight;
+    QTimer::singleShot(s_iconGeometryRetryIntervalMs, this, [this, weakRef, generation]() {
+        --m_recoveryTimersInFlight;
+        KWin::EffectWindow* win = weakRef.data();
+        if (!win) {
+            return;
+        }
+
+        auto it = m_animations.find(win);
+        if (it == m_animations.end() || it->recoveryGeneration != generation) {
+            return;
+        }
+
+        const auto dropAnimation = [this, win]() {
+            unredirect(win);
+            m_animations.remove(win);
+            KWin::effects->addRepaintFull();
+            logState("animation.recovery-fallback");
+        };
+
+        if (KWin::effects->activeFullScreenEffect()) {
+            dropAnimation();
+            return;
+        }
+
+        const bool minimized = win->isMinimized();
+        const bool settled = m_windowTracker->taskButtonsSettled(win, s_taskButtonsSettleMs);
+        if (minimized && !settled) {
+            ++it->recoveryAttempts;
+            if (it->recoveryAttempts >= s_animationRecoveryMaxRetries) {
+                qCDebug(lcMagicLamp).noquote() << "animation.recovery-timeout"
+                                               << "window=" << windowId(win)
+                                               << "attempts=" << it->recoveryAttempts;
+                dropAnimation();
+                return;
+            }
+            scheduleAnimationRecovery(win, generation);
+            return;
+        }
+
+        const auto target = m_geometryResolver->resolve(win);
+        if (target && it->model.retargetIconGeometry(*target)) {
+            const int attempts = it->recoveryAttempts;
+            it->model.resume();
+            it->recoveryAttempts = 0;
+            it->recoveryGeneration = 0;
+            qCDebug(lcMagicLamp).noquote() << "animation.recovered"
+                                           << "window=" << windowId(win)
+                                           << "attempts=" << attempts
+                                           << "target=" << *target
+                                           << "progress-preserved=true";
+            KWin::effects->addRepaintFull();
+            logState("animation.recovered");
+            return;
+        }
+
+        ++it->recoveryAttempts;
+        if (!minimized || settled || it->recoveryAttempts >= s_animationRecoveryMaxRetries) {
+            qCDebug(lcMagicLamp).noquote() << "animation.recovery-unavailable"
+                                           << "window=" << windowId(win)
+                                           << "attempts=" << it->recoveryAttempts
+                                           << "settled=" << settled
+                                           << "action=normal-kwin-behavior";
+            dropAnimation();
+            return;
+        }
+
+        scheduleAnimationRecovery(win, generation);
+    });
+}
 
 void YetAnotherMagicLampEffect::scheduleMinimizeRetry(KWin::EffectWindow* w, quint64 generation)
 {
@@ -461,7 +552,13 @@ void YetAnotherMagicLampEffect::startUnminimize(KWin::EffectWindow* w)
     // the target it already has (Model::start() reverses a running timeline).
     auto running = m_animations.find(w);
     if (running != m_animations.end() && !running->model.done()) {
+        const bool recovering = running->recoveryGeneration != 0;
         running->model.start(Model::AnimationKind::Unminimize);
+        if (recovering) {
+            // A restore can arrive while the model is paused waiting for Plasma.
+            // Keep it paused until the new task-button target has been resolved.
+            running->model.pause();
+        }
         KWin::effects->addRepaintFull();
         return;
     }
@@ -509,14 +606,11 @@ void YetAnotherMagicLampEffect::slotWindowOutputChanged(KWin::EffectWindow* wind
         return;
     }
 
-    bool changed = false;
-    auto animation = m_animations.find(window);
-    if (animation != m_animations.end()) {
-        // A window-specific output transition can happen without a global
-        // output reconfiguration. Its old task-button target is no longer safe.
-        unredirect(window);
-        m_animations.erase(animation);
-        changed = true;
+    const bool hasAnimation = m_animations.contains(window);
+    if (hasAnimation) {
+        // Pause at the current stage and progress. The replacement task-button
+        // geometry is resolved asynchronously after KWin migrates the window.
+        queueAnimationRecovery(window);
     }
 
     auto pending = m_pendingMinimize.find(window);
@@ -524,12 +618,12 @@ void YetAnotherMagicLampEffect::slotWindowOutputChanged(KWin::EffectWindow* wind
         pending->attempts = 0;
         pending->generation = ++m_pendingGeneration;
         scheduleMinimizeRetry(window, pending->generation);
-        changed = true;
     }
 
-    if (changed) {
+    if (hasAnimation || pending != m_pendingMinimize.end()) {
         qCDebug(lcMagicLamp).noquote() << "window.output-changed"
-                                       << "window=" << windowId(window);
+                                       << "window=" << windowId(window)
+                                       << "animation-recovery=" << hasAnimation;
         KWin::effects->addRepaintFull();
         logState("window-output-changed");
     }
@@ -537,30 +631,24 @@ void YetAnotherMagicLampEffect::slotWindowOutputChanged(KWin::EffectWindow* wind
 
 void YetAnotherMagicLampEffect::slotOutputsChanged()
 {
-    // Existing transforms contain global coordinates from the previous output
-    // layout. Never keep painting toward a removed or reconfigured screen.
-    const int cancelledAnimations = m_animations.size();
-    if (cancelledAnimations > 0) {
-        const auto windows = m_animations.keys();
-        for (KWin::EffectWindow* window : windows) {
-            unredirect(window);
-        }
-        m_animations.clear();
-
-        qCDebug(lcMagicLamp).noquote() << "animation.cancelled"
-                                       << "reason=outputs-changed"
-                                       << "count=" << cancelledAnimations;
+    // Freeze each active model at its current TimeLine position. Once KWin and
+    // Plasma have settled, the same model is retargeted and resumed in-place.
+    const auto animatedWindows = m_animations.keys();
+    for (KWin::EffectWindow* window : animatedWindows) {
+        queueAnimationRecovery(window);
     }
 
     // A pending minimize may now need a task button on a different output.
-    // Start a fresh bounded retry chain after the output change.
     for (auto it = m_pendingMinimize.begin(); it != m_pendingMinimize.end(); ++it) {
         it->attempts = 0;
         it->generation = ++m_pendingGeneration;
         scheduleMinimizeRetry(it.key(), it->generation);
     }
 
-    if (cancelledAnimations > 0 || !m_pendingMinimize.isEmpty()) {
+    if (!animatedWindows.isEmpty() || !m_pendingMinimize.isEmpty()) {
+        qCDebug(lcMagicLamp).noquote() << "outputs.changed"
+                                       << "animations-paused=" << animatedWindows.size()
+                                       << "pending-minimize=" << m_pendingMinimize.size();
         KWin::effects->addRepaintFull();
     }
     logState("outputs-changed");

@@ -71,7 +71,7 @@ private:
 
     void updateWindowOutput(KWin::EffectWindow* window);
     void handleOutputAboutToBeRemoved(KWin::LogicalOutput* output);
-    void resetWindowsOnOutput(KWin::LogicalOutput* output);
+    void resetAllWindows();
 
     OutputChangeCallback m_outputChangeCallback;
     QHash<KWin::EffectWindow*, Entry> m_entries;

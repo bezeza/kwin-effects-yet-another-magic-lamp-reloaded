@@ -31,6 +31,11 @@ inline bool isFinitePositiveRect(const QRectF& rect) noexcept
         && rect.height() > 0;
 }
 
+struct AnimationGeometry {
+    qreal bumpDistance = 0;
+    qreal shapeFactor = 0;
+};
+
 inline std::optional<qreal> distanceToIcon(
     Direction direction,
     const QRectF& windowRect,
@@ -91,6 +96,52 @@ inline std::optional<qreal> shapeFactor(
     }
 
     return std::max(std::clamp(configuredFactor, qreal(0), qreal(1)), minimumFactor);
+}
+
+inline std::optional<AnimationGeometry> geometryForTarget(
+    Direction direction,
+    const QRectF& windowRect,
+    const QRectF& iconRect,
+    qreal configuredBumpDistance,
+    qreal configuredShapeFactor) noexcept
+{
+    if (!isFinitePositiveRect(windowRect) || !isFinitePositiveRect(iconRect)
+        || !std::isfinite(configuredShapeFactor)) {
+        return std::nullopt;
+    }
+
+    qreal baseBumpDistance = 0;
+    switch (direction) {
+    case Direction::Top:
+        baseBumpDistance = std::max(qreal(0), iconRect.bottom() - windowRect.top());
+        break;
+    case Direction::Right:
+        baseBumpDistance = std::max(qreal(0), windowRect.right() - iconRect.left());
+        break;
+    case Direction::Bottom:
+        baseBumpDistance = std::max(qreal(0), windowRect.bottom() - iconRect.top());
+        break;
+    case Direction::Left:
+        baseBumpDistance = std::max(qreal(0), iconRect.right() - windowRect.left());
+        break;
+    default:
+        return std::nullopt;
+    }
+
+    const qreal extraBumpDistance = std::isfinite(configuredBumpDistance)
+        ? std::max(qreal(0), configuredBumpDistance)
+        : qreal(0);
+    const qreal bumpDistance = baseBumpDistance + std::min(baseBumpDistance, extraBumpDistance);
+    if (!std::isfinite(bumpDistance)) {
+        return std::nullopt;
+    }
+
+    const auto factor = shapeFactor(direction, windowRect, iconRect, bumpDistance, configuredShapeFactor);
+    if (!factor) {
+        return std::nullopt;
+    }
+
+    return AnimationGeometry{bumpDistance, *factor};
 }
 
 } // namespace ModelGeometry

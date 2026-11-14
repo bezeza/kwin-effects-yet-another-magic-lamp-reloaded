@@ -26,9 +26,8 @@ WindowTracker::WindowTracker(OutputManager* outputs, OutputChangeCallback output
 
     connect(outputs, &OutputManager::outputAboutToBeRemoved,
         this, &WindowTracker::handleOutputAboutToBeRemoved);
-    connect(outputs, &OutputManager::outputUpdated, this, [this, outputs](const QString& id) {
-        resetWindowsOnOutput(outputs->outputForId(id));
-    });
+    connect(outputs, &OutputManager::outputsChanged,
+        this, &WindowTracker::resetAllWindows);
 }
 
 bool WindowTracker::trackWindow(KWin::EffectWindow* window)
@@ -132,18 +131,12 @@ void WindowTracker::handleOutputAboutToBeRemoved(KWin::LogicalOutput* output)
     }
 }
 
-void WindowTracker::resetWindowsOnOutput(KWin::LogicalOutput* output)
+void WindowTracker::resetAllWindows()
 {
-    if (!output) {
-        return;
-    }
-
+    // Any output addition, removal, mode, scale, transform, or layout change
+    // can make Plasma relayout task managers on more than the changed output.
     for (auto it = m_entries.begin(); it != m_entries.end(); ++it) {
-        if (it->output.data() == output) {
-            // Scale, mode, transform, or layout changes can make Plasma relayout
-            // its task manager even though the LogicalOutput pointer stays the same.
-            it->sinceOutputChange.start();
-        }
+        it->sinceOutputChange.start();
     }
 }
 

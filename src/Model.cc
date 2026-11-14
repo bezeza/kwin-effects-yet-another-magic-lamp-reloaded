@@ -138,6 +138,8 @@ bool Model::start(AnimationKind kind)
         return true;
     }
 
+    m_paused = false;
+
     // Invalid or transient window geometry must not enter the render path:
     // the transform contains divisions by the window extent and distance to
     // the task button. Skip the animation and let KWin perform the normal
@@ -157,15 +159,16 @@ bool Model::start(AnimationKind kind)
         return false;
     }
     m_direction = *direction;
-    m_bumpDistance = computeBumpDistance();
-
-    const auto shapeFactor = computeShapeFactor();
-    if (!shapeFactor) {
+    const auto geometry = ModelGeometry::geometryForTarget(
+        m_direction, m_window->frameGeometry(), m_iconGeometry,
+        m_parameters.bumpDistance, m_parameters.shapeFactor);
+    if (!geometry) {
         m_done = true;
         m_clip = false;
         return false;
     }
-    m_shapeFactor = *shapeFactor;
+    m_bumpDistance = geometry->bumpDistance;
+    m_shapeFactor = geometry->shapeFactor;
     m_done = false;
 
     switch (m_kind) {
@@ -205,6 +208,10 @@ bool Model::start(AnimationKind kind)
 
 void Model::advance(std::chrono::milliseconds presentTime)
 {
+    if (m_paused) {
+        return;
+    }
+
     m_timeLine.advance(presentTime);
     if (!m_timeLine.done()) {
         return;
@@ -222,6 +229,57 @@ void Model::advance(std::chrono::milliseconds presentTime)
     default:
         Q_UNREACHABLE();
     }
+}
+
+
+void Model::pause()
+{
+    if (m_paused) {
+        return;
+    }
+
+    // TimeLine's animation clock measures from the last advance timestamp.
+    // Re-setting the current elapsed value resets that clock while preserving
+    // the stage progress, preventing a long recovery wait from being counted
+    // as one enormous frame delta.
+    const auto elapsed = m_timeLine.elapsed();
+    m_timeLine.reset();
+    m_timeLine.setElapsed(elapsed);
+    m_paused = true;
+}
+
+void Model::resume()
+{
+    m_paused = false;
+}
+
+bool Model::retargetIconGeometry(const QRectF& rect)
+{
+    if (m_done || !m_window
+        || !ModelGeometry::isFinitePositiveRect(m_window->frameGeometry())
+        || !ModelGeometry::isFinitePositiveRect(rect)) {
+        return false;
+    }
+
+    const auto direction = realizeDirection(m_window, rect);
+    if (!direction) {
+        return false;
+    }
+
+    const auto geometry = ModelGeometry::geometryForTarget(
+        *direction, m_window->frameGeometry(), rect,
+        m_parameters.bumpDistance, m_parameters.shapeFactor);
+    if (!geometry) {
+        return false;
+    }
+
+    // Do not reset or replace m_timeLine: the active stage, direction of travel,
+    // and elapsed progress are intentionally retained across the output change.
+    m_iconGeometry = rect;
+    m_direction = *direction;
+    m_bumpDistance = geometry->bumpDistance;
+    m_shapeFactor = geometry->shapeFactor;
+    return true;
 }
 
 void Model::updateMinimizeStage()
@@ -657,49 +715,6 @@ QRegion Model::clipRegion() const
     }
 
     return clipRect.toAlignedRect();
-}
-
-qreal Model::computeBumpDistance() const
-{
-    const QRectF windowRect = m_window->frameGeometry();
-    const QRectF iconRect = m_iconGeometry;
-
-    qreal bumpDistance = 0;
-    switch (m_direction) {
-    case Direction::Top:
-        bumpDistance = std::max(qreal(0), iconRect.y() + iconRect.height() - windowRect.y());
-        break;
-
-    case Direction::Right:
-        bumpDistance = std::max(qreal(0), windowRect.x() + windowRect.width() - iconRect.x());
-        break;
-
-    case Direction::Bottom:
-        bumpDistance = std::max(qreal(0), windowRect.y() + windowRect.height() - iconRect.y());
-        break;
-
-    case Direction::Left:
-        bumpDistance = std::max(qreal(0), iconRect.x() + iconRect.width() - windowRect.x());
-        break;
-
-    default:
-        Q_UNREACHABLE();
-    }
-
-    const qreal configuredExtra = std::isfinite(m_parameters.bumpDistance)
-        ? qMax(qreal(0), m_parameters.bumpDistance)
-        : qreal(0);
-    return bumpDistance + std::min(bumpDistance, configuredExtra);
-}
-
-std::optional<qreal> Model::computeShapeFactor() const
-{
-    return ModelGeometry::shapeFactor(
-        m_direction,
-        m_window->frameGeometry(),
-        m_iconGeometry,
-        m_bumpDistance,
-        m_parameters.shapeFactor);
 }
 
 bool Model::hasValidGeometry() const

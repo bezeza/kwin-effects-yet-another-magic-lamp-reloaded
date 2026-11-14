@@ -82,6 +82,11 @@ public:
      * Updates the model to @p milliseconds.
      **/
     void advance(std::chrono::milliseconds presentTime);
+    void pause();
+    void resume();
+
+    // Recalculate the target geometry without resetting the current stage or timeline progress.
+    bool retargetIconGeometry(const QRectF& rect);
 
     /**
      * Returns whether the animation is complete.
@@ -149,8 +154,6 @@ private:
     void updateMinimizeStage();
     void updateUnminimizeStage();
 
-    qreal computeBumpDistance() const;
-    std::optional<qreal> computeShapeFactor() const;
     bool hasValidGeometry() const;
 
     Parameters m_parameters;
@@ -172,4 +175,5 @@ private:
     qreal m_shapeFactor;
     bool m_clip;
     bool m_done = false;
+    bool m_paused = false;
 };
