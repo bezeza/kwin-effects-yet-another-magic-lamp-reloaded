@@ -10,9 +10,10 @@ build report and it is not a KWin runtime certification.
 The review covered the changed-file lists and diffs, the effect lifecycle/render path, model geometry validation, output
 tracking, task-button resolution, recovery policy, QtTest registration, and the four CI workflow definitions.
 
-The review environment has a C++20 compiler but does not have the Qt 6 or KWin development toolchain. GitHub reports no
-Actions runs and no commit statuses for any of the four PR head commits. Therefore, compilation, QtTest execution, distro
-compatibility, and compositor behavior remain unverified here.
+The review environment has a C++20 compiler but does not have the Qt 6 or KWin development toolchain. A standalone C++20
+smoke test of the KWin-independent animation recovery policy header passes. GitHub currently reports no Actions runs or
+commit statuses for the inspected PR #6/#7 heads. Full plugin compilation, QtTest execution, distro compatibility, and
+compositor behavior remain unverified here.
 
 ## Current PR stack
 
@@ -36,9 +37,10 @@ branch-conflict result, not proof that a build or test passed.
 - This prevents a zero step from reaching the subdivision loop and limits pathological mesh density.
 - The pure boundary test covers zero, below-minimum, normal, above-maximum, and unsigned-maximum values.
 
-**Important limitation:** the historical freeze report recorded `GridResolution=40`. That value is inside the new safe range.
-PR #3 closes a real unsafe-configuration path, but by itself it does **not** explain or prove a fix for the earlier freeze at
-40.
+**Important limitation:** KWin 6.8 `makeGrid(maxQuadSize)` advances its X/Y loops by `maxQuadSize`; zero can therefore
+produce a non-advancing loop. The historical configuration recorded 40, a positive value that does not trigger this
+specific hazard. Smaller positive values create more geometry. PR #3 closes the zero-value path, but does **not** explain
+the 14:02 freeze. See [INCIDENT_POSTMORTEM.md](INCIDENT_POSTMORTEM.md).
 
 ### PR #4 — geometry and output lifecycle guards
 
@@ -75,9 +77,8 @@ verification.
 - Retry chains are bounded and generation-tagged so stale timers cannot drive a newer attempt.
 - A new minimize during recovery retargets the model before reversing it and clears its pause.
 - Failed retargets release offscreen redirection.
-- If a rapid re-minimize has no task-button target, the old animation is cancelled and unredirected.
-  A bounded pending reference keeps the window visible while the resolver retries.
-  If no target appears, the reference is released and KWin hides the window normally.
+- If a rapid re-minimize has no task-button target, the old animation is cancelled and unredirected. A bounded pending
+  reference keeps the window visible while the resolver retries; if no target appears, KWin hides it normally.
 - A new minimize during recovery retargets the existing model before reversing
   it and clears the pause; failed retargets release offscreen redirection.
 - A pure start-state helper has regression tests for paused timelines and fresh starts.
@@ -87,6 +88,12 @@ verification.
 
 **Remaining verification:** the recovery tests cover decisions, not actual signal ordering or rendering. A nested KWin
 session is still required for panel replacement, hotplug, fullscreen takeover, rapid restore, and effect-unload scenarios.
+
+## Historical incident
+
+The 3 November main-desktop freeze and the morning nested-KWin Window View crashes are separate incidents. The freeze
+remains unexplained; the nested crashes strongly implicate KWin's Activities-disabled Window View path. Neither proves
+that the Magic Lamp effect caused the 14:02 freeze. See [INCIDENT_POSTMORTEM.md](INCIDENT_POSTMORTEM.md).
 
 ## Defensive change in this branch
 
