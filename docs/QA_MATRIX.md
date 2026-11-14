@@ -35,7 +35,8 @@ remain outside the current CI matrix.
 | F-06 | `GridResolution=100` or unsigned maximum | Runtime clamp selects 99 | AUTOMATED + MANUAL | PENDING |
 | F-07 | Historical `GridResolution=40` | No freeze; record GPU/frame behavior and logs | MANUAL | PENDING |
 
-**Do not close the historical freeze investigation from F-01–F-06 alone.** The recorded value was 40, which is positive and does not trigger the zero-step loop hazard. F-07 must still be tested, and the main incident remains unexplained.
+**Do not close the historical freeze investigation from F-01–F-06 alone.** The recorded value was 40, which is positive
+and does not trigger the zero-step loop hazard. F-07 must still be tested, and the main incident remains unexplained.
 
 ## 3. Geometry and output layout
 
