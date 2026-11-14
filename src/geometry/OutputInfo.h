@@ -56,6 +56,8 @@ struct OutputInfo {
             && std::isfinite(geometry.y())
             && std::isfinite(geometry.width())
             && std::isfinite(geometry.height())
+            && std::isfinite(geometry.right())
+            && std::isfinite(geometry.bottom())
             && std::isfinite(scale)
             && scale > 0.0
             && nativePixelSize.width() > 0

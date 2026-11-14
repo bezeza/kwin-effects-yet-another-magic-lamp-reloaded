@@ -165,6 +165,15 @@
    </item>
    <item row="5" column="1">
     <widget class="QSpinBox" name="kcfg_MaxBumpDistance">
+     <property name="toolTip">
+      <string>Additional animation bump distance in logical pixels. Values are limited to 99 pixels.</string>
+     </property>
+     <property name="minimum">
+      <number>0</number>
+     </property>
+     <property name="maximum">
+      <number>99</number>
+     </property>
      <property name="sizePolicy">
       <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
        <horstretch>0</horstretch>

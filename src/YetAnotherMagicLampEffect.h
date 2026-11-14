@@ -38,6 +38,8 @@ class WindowTracker;
 struct AnimationData {
     Model model;
     KWin::EffectWindowVisibleRef visibleRef;
+    int recoveryAttempts = 0;
+    quint64 recoveryGeneration = 0;
 };
 
 // A minimized window kept painted while it waits for its task-button geometry.
@@ -96,6 +98,8 @@ private Q_SLOTS:
     void slotMinimizedChanged(KWin::EffectWindow* w);
     void slotWindowClosed(KWin::EffectWindow* w);
     void slotWindowDeleted(KWin::EffectWindow* w);
+    void slotWindowOutputChanged(KWin::EffectWindow* w);
+    void slotOutputsChanged();
     void slotActiveFullScreenEffectChanged();
 
 private:
@@ -103,6 +107,8 @@ private:
     void animateMinimize(KWin::EffectWindow* w, const QRectF& target);
     void startUnminimize(KWin::EffectWindow* w);
     void scheduleMinimizeRetry(KWin::EffectWindow* w, quint64 generation);
+    void queueAnimationRecovery(KWin::EffectWindow* w);
+    void scheduleAnimationRecovery(KWin::EffectWindow* w, quint64 generation);
     void logState(const char* event) const;
 
     std::unique_ptr<CoordinateMapper::OutputManager> m_outputManager;
@@ -117,7 +123,9 @@ private:
     // Windows waiting for iconGeometry to become valid before animation starts
     QMap<KWin::EffectWindow*, PendingMinimize> m_pendingMinimize;
     quint64 m_pendingGeneration = 0;
+    quint64 m_recoveryGeneration = 0;
     int m_retryTimersInFlight = 0;
+    int m_recoveryTimersInFlight = 0;
 };
 
 inline int YetAnotherMagicLampEffect::requestedEffectChainPosition() const

@@ -67,16 +67,26 @@ public:
     };
 
     /**
-     * Starts animation with the given kind.
+     * Starts an animation with the given kind.
+     *
+     * Returns false when the window or target geometry is invalid and the
+     * caller should allow KWin's normal minimize/restore behavior.
      *
      * @param kind Kind of the animation (minimize or unminimize).
      **/
-    void start(AnimationKind kind);
+    bool start(AnimationKind kind);
 
     /**
      * Updates the model to @p milliseconds.
      **/
     void advance(std::chrono::milliseconds presentTime);
+
+    // Pause without losing the current stage or timeline progress.
+    void pause();
+    void resume();
+
+    // Recalculate the target without resetting the current stage or timeline progress.
+    bool retargetIconGeometry(const QRectF& rect);
 
     /**
      * Returns whether the animation is complete.
@@ -144,8 +154,7 @@ private:
     void updateMinimizeStage();
     void updateUnminimizeStage();
 
-    int computeBumpDistance() const;
-    qreal computeShapeFactor() const;
+    bool hasValidGeometry() const;
 
     Parameters m_parameters;
 
@@ -162,8 +171,9 @@ private:
     AnimationStage m_stage;
     KWin::TimeLine m_timeLine;
     Direction m_direction;
-    int m_bumpDistance;
+    qreal m_bumpDistance = 0;
     qreal m_shapeFactor;
     bool m_clip;
     bool m_done = false;
+    bool m_paused = false;
 };

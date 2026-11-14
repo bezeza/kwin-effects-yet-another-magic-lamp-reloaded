@@ -38,7 +38,7 @@ QList<OutputInfo> OutputManager::outputs() const
     // Preserve KWin's output ordering instead of relying on QHash iteration.
     for (KWin::LogicalOutput* output : m_effects->screens()) {
         const auto it = m_entries.constFind(output);
-        if (it != m_entries.constEnd() && !it->output.isNull()) {
+        if (it != m_entries.constEnd() && !it->output.isNull() && it->info.isValid()) {
             result.append(it->info);
         }
     }
@@ -52,7 +52,7 @@ std::optional<OutputInfo> OutputManager::infoFor(KWin::LogicalOutput* output) co
     }
 
     const auto it = m_entries.constFind(output);
-    if (it == m_entries.constEnd() || it->output.isNull()) {
+    if (it == m_entries.constEnd() || it->output.isNull() || !it->info.isValid()) {
         return std::nullopt;
     }
     return it->info;
@@ -104,6 +104,8 @@ void OutputManager::removeOutput(KWin::LogicalOutput* output)
     }
 
     const QString id = it->info.id;
+    Q_EMIT outputAboutToBeRemoved(output);
+
     for (const QMetaObject::Connection& connection : it->connections) {
         QObject::disconnect(connection);
     }

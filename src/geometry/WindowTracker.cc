@@ -7,16 +7,27 @@
 
 // Own
 #include "WindowTracker.h"
+#include "OutputManager.h"
 
 // KWin
 #include <core/output.h>
 #include <effect/effectwindow.h>
+#include <window.h>
 
 namespace CoordinateMapper {
 
-WindowTracker::WindowTracker(QObject* parent)
+WindowTracker::WindowTracker(OutputManager* outputs, OutputChangeCallback outputChangeCallback, QObject* parent)
     : QObject(parent)
+    , m_outputChangeCallback(outputChangeCallback)
 {
+    if (!outputs) {
+        return;
+    }
+
+    connect(outputs, &OutputManager::outputAboutToBeRemoved,
+        this, &WindowTracker::handleOutputAboutToBeRemoved);
+    connect(outputs, &OutputManager::outputsChanged,
+        this, &WindowTracker::resetAllWindows);
 }
 
 bool WindowTracker::trackWindow(KWin::EffectWindow* window)
@@ -38,6 +49,14 @@ bool WindowTracker::trackWindow(KWin::EffectWindow* window)
         [this](KWin::EffectWindow* changedWindow) {
             updateWindowOutput(changedWindow);
         });
+
+    if (KWin::Window* internalWindow = window->window()) {
+        it->outputConnection = connect(internalWindow, &KWin::Window::outputChanged,
+            this, [this, window](KWin::LogicalOutput*) {
+                updateWindowOutput(window);
+            });
+    }
+
     it->destroyedConnection = connect(window, &QObject::destroyed, this, [this, window]() {
         untrackWindow(window);
     });
@@ -53,6 +72,7 @@ void WindowTracker::untrackWindow(KWin::EffectWindow* window)
     }
 
     QObject::disconnect(it->geometryConnection);
+    QObject::disconnect(it->outputConnection);
     QObject::disconnect(it->destroyedConnection);
     m_entries.erase(it);
 }
@@ -85,9 +105,37 @@ void WindowTracker::updateWindowOutput(KWin::EffectWindow* window)
         return;
     }
 
-    const KWin::LogicalOutput* output = window->screen();
-    if (it->output != output) {
+    KWin::LogicalOutput* output = window->screen();
+    if (outputIdentityChanged(it->output.data(), output)) {
         it->output = output;
+        it->sinceOutputChange.start();
+        if (m_outputChangeCallback) {
+            m_outputChangeCallback(window);
+        }
+    }
+}
+
+void WindowTracker::handleOutputAboutToBeRemoved(KWin::LogicalOutput* output)
+{
+    if (!output) {
+        return;
+    }
+
+    for (auto it = m_entries.begin(); it != m_entries.end(); ++it) {
+        if (it->output.data() == output) {
+            // Do not retain an output identity after KWin has announced its removal.
+            // The subsequent Window::outputChanged signal will record the replacement.
+            it->output = nullptr;
+            it->sinceOutputChange.start();
+        }
+    }
+}
+
+void WindowTracker::resetAllWindows()
+{
+    // Any output addition, removal, mode, scale, transform, or layout change
+    // can make Plasma relayout task managers on more than the changed output.
+    for (auto it = m_entries.begin(); it != m_entries.end(); ++it) {
         it->sinceOutputChange.start();
     }
 }

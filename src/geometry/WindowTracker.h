@@ -12,6 +12,9 @@
 #include <QHash>
 #include <QMetaObject>
 #include <QObject>
+#include <QPointer>
+
+#include <functional>
 
 namespace KWin {
 class EffectWindow;
@@ -20,6 +23,8 @@ class LogicalOutput;
 
 namespace CoordinateMapper {
 
+class OutputManager;
+
 // Tracks the time windows have spent on their current output. Plasma task
 // managers may publish a new task button after a window is added or moves to
 // another output; consumers can use this bounded settling window when retrying
@@ -27,7 +32,10 @@ namespace CoordinateMapper {
 class WindowTracker final : public QObject
 {
 public:
-    explicit WindowTracker(QObject* parent = nullptr);
+    using OutputChangeCallback = std::function<void(KWin::EffectWindow*)>;
+
+    explicit WindowTracker(OutputManager* outputs, OutputChangeCallback outputChangeCallback,
+        QObject* parent = nullptr);
     ~WindowTracker() override = default;
 
     // Returns true only when a new window was registered.
@@ -45,17 +53,27 @@ public:
             && sinceOutputChangeMs >= settleMs;
     }
 
+    // Pointer identity is enough here: output objects are only compared, never dereferenced.
+    static bool outputIdentityChanged(const void* previous, const void* current) noexcept
+    {
+        return previous != current;
+    }
+
 private:
     struct Entry {
         QElapsedTimer sinceAdded;
         QElapsedTimer sinceOutputChange;
-        const KWin::LogicalOutput* output = nullptr;
+        QPointer<KWin::LogicalOutput> output;
         QMetaObject::Connection geometryConnection;
+        QMetaObject::Connection outputConnection;
         QMetaObject::Connection destroyedConnection;
     };
 
     void updateWindowOutput(KWin::EffectWindow* window);
+    void handleOutputAboutToBeRemoved(KWin::LogicalOutput* output);
+    void resetAllWindows();
 
+    OutputChangeCallback m_outputChangeCallback;
     QHash<KWin::EffectWindow*, Entry> m_entries;
 };
 

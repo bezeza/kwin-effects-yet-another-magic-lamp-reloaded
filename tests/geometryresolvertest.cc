@@ -9,6 +9,8 @@
 
 #include <QTest>
 
+#include <limits>
+
 using CoordinateMapper::PanelButtonCandidate;
 using CoordinateMapper::nearestButtonOnOutput;
 
@@ -23,6 +25,7 @@ private Q_SLOTS:
     void returnsNoButtonWhenOnlyOtherOutputsExist();
     void ignoresInvalidButtonGeometry();
     void ignoresInvalidPanelGeometry();
+    void ignoresOverflowingButtonGeometry();
     void rejectsNonFiniteWindowCenter();
 };
 
@@ -100,6 +103,16 @@ void GeometryResolverTest::ignoresInvalidPanelGeometry()
 {
     const QList<PanelButtonCandidate> candidates{
         {true, QRectF(0.0, 700.0, 0.0, 68.0), QRectF(400.0, 710.0, 40.0, 40.0)},
+    };
+
+    QVERIFY(!nearestButtonOnOutput(candidates, QPointF(500.0, 740.0)));
+}
+
+void GeometryResolverTest::ignoresOverflowingButtonGeometry()
+{
+    const qreal maximum = std::numeric_limits<qreal>::max();
+    const QList<PanelButtonCandidate> candidates{
+        {true, QRectF(0.0, 700.0, 1024.0, 68.0), QRectF(maximum, 710.0, maximum, 40.0)},
     };
 
     QVERIFY(!nearestButtonOnOutput(candidates, QPointF(500.0, 740.0)));

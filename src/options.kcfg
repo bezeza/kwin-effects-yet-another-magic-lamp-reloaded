@@ -6,21 +6,33 @@
     <kcfgfile name="kwinrc"/>
     <group name="Effect-YetAnotherMagicLamp">
         <entry name="Duration" type="UInt">
+            <min>0</min>
+            <max>9999</max>
             <default>0</default>
         </entry>
         <entry name="StretchDuration" type="UInt">
+            <min>0</min>
+            <max>9999</max>
             <default>0</default>
         </entry>
         <entry name="UnminimizeStretchDuration" type="UInt">
+            <min>0</min>
+            <max>9999</max>
             <default>0</default>
         </entry>
         <entry name="SquashDuration" type="UInt">
+            <min>0</min>
+            <max>9999</max>
             <default>0</default>
         </entry>
         <entry name="BumpDuration" type="UInt">
+            <min>0</min>
+            <max>9999</max>
             <default>0</default>
         </entry>
         <entry name="MaxBumpDistance" type="UInt">
+            <min>0</min>
+            <max>99</max>
             <default>0</default>
         </entry>
         <entry name="GridResolution" type="UInt">

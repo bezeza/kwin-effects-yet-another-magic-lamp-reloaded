@@ -56,8 +56,10 @@ inline std::optional<QRectF> nearestButtonOnOutput(
         }
         if (!std::isfinite(panel.x()) || !std::isfinite(panel.y())
             || !std::isfinite(panel.width()) || !std::isfinite(panel.height())
+            || !std::isfinite(panel.right()) || !std::isfinite(panel.bottom())
             || !std::isfinite(button.x()) || !std::isfinite(button.y())
-            || !std::isfinite(button.width()) || !std::isfinite(button.height())) {
+            || !std::isfinite(button.width()) || !std::isfinite(button.height())
+            || !std::isfinite(button.right()) || !std::isfinite(button.bottom())) {
             continue;
         }
 

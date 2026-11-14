@@ -48,6 +48,8 @@ Q_SIGNALS:
     void outputsChanged();
     void outputAdded(const QString& id);
     void outputUpdated(const QString& id);
+    // Emitted while the entry is still registered, before it is erased.
+    void outputAboutToBeRemoved(KWin::LogicalOutput* output);
     void outputRemoved(const QString& id);
 
 private:
