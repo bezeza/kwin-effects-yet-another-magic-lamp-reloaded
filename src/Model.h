@@ -69,7 +69,10 @@ public:
     };
 
     /**
-     * Starts animation with the given kind.
+     * Starts an animation with the given kind.
+     *
+     * Returns false when the window or target geometry is invalid and the
+     * caller should allow KWin's normal minimize/restore behavior.
      *
      * @param kind Kind of the animation (minimize or unminimize).
      **/

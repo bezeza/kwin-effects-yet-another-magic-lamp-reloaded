@@ -45,10 +45,19 @@ void ModelGeometryTest::calculatesDistanceForEachDirection()
 {
     const QRectF window(100, 100, 800, 600);
 
-    QCOMPARE(*ModelGeometry::distanceToIcon(Direction::Top, window, QRectF(400, 0, 40, 40), 0), 660.0);
-    QCOMPARE(*ModelGeometry::distanceToIcon(Direction::Right, window, QRectF(950, 300, 40, 40), 0), 850.0);
-    QCOMPARE(*ModelGeometry::distanceToIcon(Direction::Bottom, window, QRectF(400, 750, 40, 40), 0), 650.0);
-    QCOMPARE(*ModelGeometry::distanceToIcon(Direction::Left, window, QRectF(0, 300, 40, 40), 0), 860.0);
+    const auto top = ModelGeometry::distanceToIcon(Direction::Top, window, QRectF(400, 0, 40, 40), 0);
+    const auto right = ModelGeometry::distanceToIcon(Direction::Right, window, QRectF(950, 300, 40, 40), 0);
+    const auto bottom = ModelGeometry::distanceToIcon(Direction::Bottom, window, QRectF(400, 750, 40, 40), 0);
+    const auto left = ModelGeometry::distanceToIcon(Direction::Left, window, QRectF(0, 300, 40, 40), 0);
+
+    QVERIFY(top);
+    QVERIFY(right);
+    QVERIFY(bottom);
+    QVERIFY(left);
+    QCOMPARE(*top, 660.0);
+    QCOMPARE(*right, 850.0);
+    QCOMPARE(*bottom, 650.0);
+    QCOMPARE(*left, 860.0);
 }
 
 void ModelGeometryTest::rejectsZeroAndNegativeAnimationDistances()
