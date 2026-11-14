@@ -34,26 +34,26 @@ class Model {
 public:
     struct Parameters {
         // The duration of the squash stage.
-        std::chrono::milliseconds squashDuration;
+        std::chrono::milliseconds squashDuration{300};
 
         // The duration of the stretch stage.
-        std::chrono::milliseconds stretchDuration;
+        std::chrono::milliseconds stretchDuration{210};
 
         // The duration of the Stretch2 stage on unminimize (contains the
         // coupled bump-return). Defaults to stretchDuration.
-        std::chrono::milliseconds unminimizeStretchDuration;
+        std::chrono::milliseconds unminimizeStretchDuration{210};
 
         // How long it takes to raise the window.
-        std::chrono::milliseconds bumpDuration;
+        std::chrono::milliseconds bumpDuration{300};
 
         // Defines shape of transformed windows.
-        QEasingCurve shapeCurve;
+        QEasingCurve shapeCurve{QEasingCurve::InOutCubic};
 
         // The blend factor between Squash and Stretch stage.
-        qreal shapeFactor;
+        qreal shapeFactor = 0.2;
 
         // How much the transformed window should be raised.
-        qreal bumpDistance;
+        qreal bumpDistance = 0.0;
     };
 
     explicit Model(KWin::EffectWindow* window = nullptr);
@@ -156,7 +156,7 @@ private:
 
     bool hasValidGeometry() const;
 
-    Parameters m_parameters;
+    Parameters m_parameters{};
 
     enum class AnimationStage {
         Bump,
@@ -165,15 +165,15 @@ private:
         Squash
     };
 
-    KWin::EffectWindow* m_window;
+    KWin::EffectWindow* m_window = nullptr;
     QRectF m_iconGeometry;
-    AnimationKind m_kind;
-    AnimationStage m_stage;
+    AnimationKind m_kind = AnimationKind::Minimize;
+    AnimationStage m_stage = AnimationStage::Bump;
     KWin::TimeLine m_timeLine;
-    Direction m_direction;
-    qreal m_bumpDistance = 0;
-    qreal m_shapeFactor;
-    bool m_clip;
-    bool m_done = false;
+    Direction m_direction = Direction::Bottom;
+    qreal m_bumpDistance = 0.0;
+    qreal m_shapeFactor = 0.0;
+    bool m_clip = false;
+    bool m_done = true;
     bool m_paused = false;
 };

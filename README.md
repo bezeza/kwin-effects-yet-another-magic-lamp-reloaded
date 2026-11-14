@@ -164,6 +164,13 @@ Open **System Settings** and navigate to:
 
 Select **"Yet Another Magic Lamp"** and click **Apply**.
 
+### Development and QA
+
+- [Architecture overview](docs/ARCHITECTURE.md)
+- [QA matrix](docs/QA_MATRIX.md)
+- [Development audit and PR stack](docs/DEVELOPMENT_AUDIT.md)
+- [Historical freeze and nested KWin incident note](docs/INCIDENT_POSTMORTEM.md)
+
 ### Contributing
 
 Contributions are welcome. For suggestions or ideas, please open an issue. For code contributions, run `clang-format` before submitting a pull request.
