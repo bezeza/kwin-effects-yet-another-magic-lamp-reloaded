@@ -18,6 +18,9 @@ private Q_SLOTS:
     void settlesAtExactThreshold();
     void zeroThresholdIsImmediatelySettled();
     void rejectsNegativeThreshold();
+    void detectsOutputSwitch();
+    void detectsOutputRemovalAndReattachment();
+    void ignoresUnchangedOutputIdentity();
 };
 
 void WindowTrackerTest::remainsUnsettledUntilBothTimersExpire()
@@ -40,6 +43,30 @@ void WindowTrackerTest::zeroThresholdIsImmediatelySettled()
 void WindowTrackerTest::rejectsNegativeThreshold()
 {
     QVERIFY(!CoordinateMapper::WindowTracker::hasSettled(5000, 5000, -1));
+}
+
+void WindowTrackerTest::detectsOutputSwitch()
+{
+    int firstOutput = 0;
+    int secondOutput = 0;
+
+    QVERIFY(CoordinateMapper::WindowTracker::outputIdentityChanged(&firstOutput, &secondOutput));
+}
+
+void WindowTrackerTest::detectsOutputRemovalAndReattachment()
+{
+    int output = 0;
+
+    QVERIFY(CoordinateMapper::WindowTracker::outputIdentityChanged(&output, nullptr));
+    QVERIFY(CoordinateMapper::WindowTracker::outputIdentityChanged(nullptr, &output));
+}
+
+void WindowTrackerTest::ignoresUnchangedOutputIdentity()
+{
+    int output = 0;
+
+    QVERIFY(!CoordinateMapper::WindowTracker::outputIdentityChanged(&output, &output));
+    QVERIFY(!CoordinateMapper::WindowTracker::outputIdentityChanged(nullptr, nullptr));
 }
 
 QTEST_GUILESS_MAIN(WindowTrackerTest)

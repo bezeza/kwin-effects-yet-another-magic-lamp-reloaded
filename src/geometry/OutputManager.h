@@ -48,6 +48,8 @@ Q_SIGNALS:
     void outputsChanged();
     void outputAdded(const QString& id);
     void outputUpdated(const QString& id);
+    // Emitted before the entry is erased and before KWin releases the output.
+    void outputAboutToBeRemoved(KWin::LogicalOutput* output);
     void outputRemoved(const QString& id);
 
 private:

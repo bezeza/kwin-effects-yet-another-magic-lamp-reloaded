@@ -67,7 +67,10 @@ YetAnotherMagicLampEffect::YetAnotherMagicLampEffect()
 {
     m_outputManager = std::make_unique<CoordinateMapper::OutputManager>(KWin::effects);
     m_geometryResolver = std::make_unique<CoordinateMapper::GeometryResolver>(m_outputManager.get());
-    m_windowTracker = std::make_unique<CoordinateMapper::WindowTracker>();
+    m_windowTracker = std::make_unique<CoordinateMapper::WindowTracker>(m_outputManager.get());
+
+    connect(m_outputManager.get(), &CoordinateMapper::OutputManager::outputsChanged,
+        this, &YetAnotherMagicLampEffect::slotOutputsChanged);
 
     reconfigure(ReconfigureAll);
 
@@ -491,6 +494,37 @@ void YetAnotherMagicLampEffect::slotWindowDeleted(KWin::EffectWindow* w)
     m_pendingMinimize.remove(w);
     m_animations.remove(w);
     logState("window-deleted");
+}
+
+void YetAnotherMagicLampEffect::slotOutputsChanged()
+{
+    // Existing transforms contain global coordinates from the previous output
+    // layout. Never keep painting toward a removed or reconfigured screen.
+    const int cancelledAnimations = m_animations.size();
+    if (cancelledAnimations > 0) {
+        const auto windows = m_animations.keys();
+        for (KWin::EffectWindow* window : windows) {
+            unredirect(window);
+        }
+        m_animations.clear();
+
+        qCDebug(lcMagicLamp).noquote() << "animation.cancelled"
+                                       << "reason=outputs-changed"
+                                       << "count=" << cancelledAnimations;
+    }
+
+    // A pending minimize may now need a task button on a different output.
+    // Start a fresh bounded retry chain after the output change.
+    for (auto it = m_pendingMinimize.begin(); it != m_pendingMinimize.end(); ++it) {
+        it->attempts = 0;
+        it->generation = ++m_pendingGeneration;
+        scheduleMinimizeRetry(it.key(), it->generation);
+    }
+
+    if (cancelledAnimations > 0 || !m_pendingMinimize.isEmpty()) {
+        KWin::effects->addRepaintFull();
+    }
+    logState("outputs-changed");
 }
 
 void YetAnotherMagicLampEffect::slotActiveFullScreenEffectChanged()
