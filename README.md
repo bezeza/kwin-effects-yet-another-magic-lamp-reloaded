@@ -169,6 +169,7 @@ Select **"Yet Another Magic Lamp"** and click **Apply**.
 - [Architecture overview](docs/ARCHITECTURE.md)
 - [QA matrix](docs/QA_MATRIX.md)
 - [Development audit and PR stack](docs/DEVELOPMENT_AUDIT.md)
+- [Historical freeze and nested KWin incident note](docs/INCIDENT_POSTMORTEM.md)
 
 ### Contributing
 
