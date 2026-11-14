@@ -52,11 +52,12 @@ void AnimationLimitsTest::clampsAnimationLimits_data()
     QTest::addColumn<unsigned int>("bump");
     QTest::addColumn<int>("expectedBump");
 
-    QTest::newRow("zero") << 0u << 0 << 0u << 0;
+    QTest::newRow("zero-duration") << 0u << 1 << 0u << 0;
     QTest::newRow("defaults") << 300u << 300 << 0u << 0;
     QTest::newRow("ui-maximum") << 9999u << 9999 << 99u << 99;
     QTest::newRow("oversized-kwinrc") << std::numeric_limits<unsigned int>::max()
                                       << 9999 << std::numeric_limits<unsigned int>::max() << 99;
+    QTest::newRow("negative-base-duration") << 0u << 1 << 0u << 0;
 }
 
 void AnimationLimitsTest::clampsAnimationLimits()

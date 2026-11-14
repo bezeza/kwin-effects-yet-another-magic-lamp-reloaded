@@ -147,8 +147,8 @@ void YetAnotherMagicLampEffect::reconfigure(ReconfigureFlags flags)
     m_modelParameters.shapeCurve = curve;
 
     const auto clampDuration = [](std::chrono::milliseconds duration) {
-        return std::chrono::milliseconds(qBound<qint64>(
-            1, duration.count(), CoordinateMapper::MaxAnimationDurationMs));
+        return std::chrono::milliseconds(
+            CoordinateMapper::boundedAnimationDuration(duration.count()));
     };
     const auto baseDuration = clampDuration(KWinCompat::toMilliseconds(
         animationTime<YetAnotherMagicLampConfig>(std::chrono::milliseconds(300))));

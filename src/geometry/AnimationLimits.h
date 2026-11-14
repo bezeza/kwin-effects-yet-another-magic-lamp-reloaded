@@ -19,11 +19,15 @@ inline constexpr unsigned int MaxGridCellSize = 99;
 inline constexpr unsigned int MaxAnimationDurationMs = 9999;
 inline constexpr unsigned int MaxBumpDistance = 99;
 
-constexpr int boundedAnimationDuration(unsigned int configuredValue) noexcept
+constexpr int boundedAnimationDuration(long long configuredValue) noexcept
 {
-    return static_cast<int>(configuredValue > MaxAnimationDurationMs
-        ? MaxAnimationDurationMs
-        : configuredValue);
+    if (configuredValue < 1) {
+        return 1;
+    }
+    if (configuredValue > MaxAnimationDurationMs) {
+        return static_cast<int>(MaxAnimationDurationMs);
+    }
+    return static_cast<int>(configuredValue);
 }
 
 constexpr int boundedBumpDistance(unsigned int configuredValue) noexcept
