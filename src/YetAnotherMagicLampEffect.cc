@@ -370,16 +370,37 @@ void YetAnotherMagicLampEffect::startMinimize(KWin::EffectWindow* w)
 // that is used.
 void YetAnotherMagicLampEffect::animateMinimize(KWin::EffectWindow* w, const QRectF& target)
 {
+    const bool hadAnimation = m_animations.contains(w);
     AnimationData& animData = m_animations[w];
     animData.recoveryAttempts = 0;
     animData.recoveryGeneration = 0;
-    animData.model.setWindow(w);
     animData.model.setParameters(m_modelParameters);
     qCDebug(lcMagicLamp).noquote() << "minimize.target"
                                    << "window=" << windowId(w)
                                    << "target=" << target;
-    animData.model.setIconGeometry(target);
+
+    // If this window already has an animation, update its target in-place
+    // before reversing it. setWindow()/setIconGeometry() alone would leave
+    // direction and distance cached from the previous output.
+    const bool modelActive = !animData.model.done();
+    if (modelActive) {
+        if (!animData.model.retargetIconGeometry(target)) {
+            unredirect(w);
+            m_pendingMinimize.remove(w);
+            m_animations.remove(w);
+            qCDebug(lcMagicLamp).noquote() << "minimize.skipped-invalid-retarget"
+                                           << "window=" << windowId(w);
+            return;
+        }
+    } else {
+        animData.model.setWindow(w);
+        animData.model.setIconGeometry(target);
+    }
+
     if (!animData.model.start(Model::AnimationKind::Minimize)) {
+        if (hadAnimation) {
+            unredirect(w);
+        }
         m_pendingMinimize.remove(w);
         m_animations.remove(w);
         qCDebug(lcMagicLamp).noquote() << "minimize.skipped-invalid-geometry"
@@ -602,11 +623,15 @@ void YetAnotherMagicLampEffect::startUnminimize(KWin::EffectWindow* w)
         return;
     }
 
+    const bool hadAnimation = m_animations.contains(w);
     AnimationData& animData = m_animations[w];
     animData.model.setWindow(w);
     animData.model.setParameters(m_modelParameters);
     animData.model.setIconGeometry(*target);
     if (!animData.model.start(Model::AnimationKind::Unminimize)) {
+        if (hadAnimation) {
+            unredirect(w);
+        }
         m_animations.remove(w);
         qCDebug(lcMagicLamp).noquote() << "unminimize.skipped-invalid-geometry"
                                        << "window=" << windowId(w);

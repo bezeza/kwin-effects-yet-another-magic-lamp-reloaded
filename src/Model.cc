@@ -132,13 +132,16 @@ bool Model::start(AnimationKind kind)
 {
     m_kind = kind;
 
+    // A new minimize/restore request must be able to resume a model that was
+    // paused for output recovery. Callers that still need it paused (restore
+    // during recovery) explicitly pause it again after start().
+    m_paused = false;
+
     if (m_timeLine.running()) {
         m_done = false;
         m_timeLine.toggleDirection();
         return true;
     }
-
-    m_paused = false;
 
     // Invalid or transient window geometry must not enter the render path:
     // the transform contains divisions by the window extent and distance to
