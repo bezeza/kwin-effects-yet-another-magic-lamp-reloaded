@@ -9,7 +9,9 @@
 #include <QTest>
 
 using CoordinateMapper::AnimationRecoveryDecision;
+using CoordinateMapper::MissingMinimizeTargetAction;
 using CoordinateMapper::decideAnimationRecovery;
+using CoordinateMapper::decideMissingMinimizeTarget;
 
 class AnimationRecoveryTest : public QObject
 {
@@ -27,6 +29,8 @@ private Q_SLOTS:
     void dropsAfterRetryLimitIsReached();
     void startUnpausesAndReversesRunningTimeline();
     void startUnpausesFreshTimeline();
+    void waitsForTargetWhenNoAnimationExists();
+    void cancelsActiveAnimationWhenMinimizeTargetIsMissing();
 };
 
 void AnimationRecoveryTest::dropsRecoveryWhenWindowHasBeenDeleted()
@@ -105,6 +109,18 @@ void AnimationRecoveryTest::startUnpausesFreshTimeline()
     QVERIFY(!state.paused);
     QVERIFY(state.done);
     QVERIFY(!state.reverseTimeline);
+}
+
+void AnimationRecoveryTest::waitsForTargetWhenNoAnimationExists()
+{
+    QCOMPARE(decideMissingMinimizeTarget(false),
+        MissingMinimizeTargetAction::WaitForTarget);
+}
+
+void AnimationRecoveryTest::cancelsActiveAnimationWhenMinimizeTargetIsMissing()
+{
+    QCOMPARE(decideMissingMinimizeTarget(true),
+        MissingMinimizeTargetAction::CancelExistingAnimation);
 }
 
 QTEST_GUILESS_MAIN(AnimationRecoveryTest)

@@ -27,6 +27,19 @@ constexpr AnimationStartState prepareAnimationStart(
     return current;
 }
 
+enum class MissingMinimizeTargetAction {
+    WaitForTarget,
+    CancelExistingAnimation,
+};
+
+constexpr MissingMinimizeTargetAction decideMissingMinimizeTarget(
+    bool hasExistingAnimation) noexcept
+{
+    return hasExistingAnimation
+        ? MissingMinimizeTargetAction::CancelExistingAnimation
+        : MissingMinimizeTargetAction::WaitForTarget;
+}
+
 enum class AnimationRecoveryDecision {
     Retry,
     Resume,

@@ -359,6 +359,20 @@ void YetAnotherMagicLampEffect::startMinimize(KWin::EffectWindow* w)
             pending.generation = ++m_pendingGeneration;
             scheduleMinimizeRetry(w, pending.generation);
         }
+
+        // A rapid re-minimize can arrive while an unminimize animation is
+        // still active. Without a task-button target, that old animation must
+        // not continue in the wrong direction while we wait for Plasma.
+        if (CoordinateMapper::decideMissingMinimizeTarget(m_animations.contains(w))
+            == CoordinateMapper::MissingMinimizeTargetAction::CancelExistingAnimation) {
+            unredirect(w);
+            m_animations.remove(w);
+            KWin::effects->addRepaintFull();
+            qCDebug(lcMagicLamp).noquote() << "minimize.cancelled-active-animation"
+                                           << "window=" << windowId(w)
+                                           << "reason=missing-target";
+            logState("minimize-waiting-without-target");
+        }
         return;
     }
 
