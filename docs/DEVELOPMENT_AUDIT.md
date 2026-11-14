@@ -64,6 +64,11 @@ manager, Wayland server, or compositor render path.
 statuses. No distro build or QtTest result can be treated as passed. The repository's Actions availability/settings need to
 be checked by an owner, and the workflows must be observed running after that.
 
+The workflows are introduced by PR #5, so PR #5 itself may not run them while its base branch lacks those files. PR #6 and
+PR #7 inherit the workflows, and their base branches match the configured `fix/**` pull-request filter. Their empty run
+lists are therefore not explained by the branch-name filter; repository Actions settings or policy still need owner-side
+verification.
+
 ### PR #6 — animation and panel lifecycle recovery
 
 - Active models are paused during output/panel changes and are retargeted before resuming.
