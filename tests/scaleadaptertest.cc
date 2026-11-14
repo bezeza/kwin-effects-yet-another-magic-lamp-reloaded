@@ -76,6 +76,9 @@ void ScaleAdapterTest::rejectsInvalidGeometry()
     QVERIFY(!ScaleAdapter::toPixels(
         QRectF(std::numeric_limits<qreal>::quiet_NaN(), 0.0, 10.0, 10.0), 1.5));
     QVERIFY(!ScaleAdapter::toPixels(QPointF(1e308, 0.0), 2.0));
+    QVERIFY(!ScaleAdapter::toPixels(QRectF(
+        std::numeric_limits<qreal>::max(), 0.0,
+        std::numeric_limits<qreal>::max(), 10.0), 1.5));
 }
 
 QTEST_GUILESS_MAIN(ScaleAdapterTest)

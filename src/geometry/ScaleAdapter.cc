@@ -24,7 +24,8 @@ bool isFinite(const QPointF& point)
 bool isFinite(const QRectF& rect)
 {
     return std::isfinite(rect.x()) && std::isfinite(rect.y())
-        && std::isfinite(rect.width()) && std::isfinite(rect.height());
+        && std::isfinite(rect.width()) && std::isfinite(rect.height())
+        && std::isfinite(rect.right()) && std::isfinite(rect.bottom());
 }
 
 bool fitsInt(qreal value)

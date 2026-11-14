@@ -24,6 +24,7 @@ private Q_SLOTS:
     void rejectsInvalidScale();
     void rejectsInvalidGeometry();
     void rejectsNonFiniteGeometry();
+    void rejectsOverflowingGeometry();
     void rejectsMissingModeSize();
     void rejectsUnknownTransform();
 };
@@ -84,6 +85,21 @@ void OutputInfoTest::rejectsNonFiniteGeometry()
     OutputInfo info;
     info.id = QStringLiteral("DP-1");
     info.geometry = QRectF(std::numeric_limits<qreal>::quiet_NaN(), 0.0, 1920.0, 1080.0);
+    info.scale = 1.0;
+    info.nativePixelSize = QSize(1920, 1080);
+    info.transformedPixelSize = QSize(1920, 1080);
+    info.transform = TransformKind::Normal;
+
+    QVERIFY(!info.isValid());
+}
+
+void OutputInfoTest::rejectsOverflowingGeometry()
+{
+    OutputInfo info;
+    info.id = QStringLiteral("DP-1");
+    info.geometry = QRectF(
+        std::numeric_limits<qreal>::max(), 0.0,
+        std::numeric_limits<qreal>::max(), 1080.0);
     info.scale = 1.0;
     info.nativePixelSize = QSize(1920, 1080);
     info.transformedPixelSize = QSize(1920, 1080);
