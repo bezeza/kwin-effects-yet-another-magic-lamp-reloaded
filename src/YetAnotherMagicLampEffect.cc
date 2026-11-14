@@ -215,7 +215,9 @@ void YetAnotherMagicLampEffect::prePaintScreen(KWin::ScreenPrePaintData& data)
 {
     const auto presentTime = KWinCompat::monotonicTimestamp();
     for (AnimationData& animData : m_animations) {
-        animData.model.advance(presentTime);
+        if (animData.recoveryGeneration == 0) {
+            animData.model.advance(presentTime);
+        }
     }
 
     data.mask |= PAINT_SCREEN_WITH_TRANSFORMED_WINDOWS;
