@@ -132,13 +132,12 @@ bool Model::start(AnimationKind kind)
 {
     m_kind = kind;
 
-    // A new minimize/restore request must be able to resume a model that was
-    // paused for output recovery. Callers that still need it paused (restore
-    // during recovery) explicitly pause it again after start().
-    m_paused = false;
+    const auto startState = CoordinateMapper::prepareAnimationStart(
+        {m_paused, m_done, false}, m_timeLine.running());
+    m_paused = startState.paused;
+    m_done = startState.done;
 
-    if (m_timeLine.running()) {
-        m_done = false;
+    if (startState.reverseTimeline) {
         m_timeLine.toggleDirection();
         return true;
     }
