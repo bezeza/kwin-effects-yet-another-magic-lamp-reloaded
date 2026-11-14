@@ -32,6 +32,7 @@ void AnimationLimitsTest::clampsGridCellSize_data()
     QTest::newRow("below-minimum") << 15u << 16;
     QTest::newRow("minimum") << 16u << 16;
     QTest::newRow("default") << 30u << 30;
+    QTest::newRow("historical-value-40-remains-40") << 40u << 40;
     QTest::newRow("maximum") << 99u << 99;
     QTest::newRow("above-maximum") << 100u << 99;
     QTest::newRow("unsigned-overflow-value") << std::numeric_limits<unsigned int>::max() << 99;
