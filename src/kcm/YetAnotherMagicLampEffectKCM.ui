@@ -176,12 +176,24 @@
    <item row="6" column="0">
     <widget class="QLabel" name="label_GridResolution">
      <property name="text">
-      <string>Grid resolution:</string>
+      <string>Maximum quad size:</string>
      </property>
     </widget>
    </item>
    <item row="6" column="1">
     <widget class="QSpinBox" name="kcfg_GridResolution">
+     <property name="toolTip">
+      <string>Maximum size of each animation mesh cell in logical pixels. Smaller values create much more geometry and increase rendering cost. Values below 16 are clamped to 16.</string>
+     </property>
+     <property name="minimum">
+      <number>16</number>
+     </property>
+     <property name="maximum">
+      <number>99</number>
+     </property>
+     <property name="suffix">
+      <string> pixels</string>
+     </property>
      <property name="sizePolicy">
       <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
        <horstretch>0</horstretch>

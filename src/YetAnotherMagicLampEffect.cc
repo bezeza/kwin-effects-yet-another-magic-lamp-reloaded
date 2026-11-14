@@ -19,6 +19,7 @@
 // Own
 #include "YetAnotherMagicLampEffect.h"
 #include "Model.h"
+#include "geometry/AnimationLimits.h"
 #include "geometry/GeometryResolver.h"
 #include "geometry/OutputManager.h"
 #include "geometry/WindowTracker.h"
@@ -166,7 +167,7 @@ void YetAnotherMagicLampEffect::reconfigure(ReconfigureFlags flags)
     m_modelParameters.shapeFactor = YetAnotherMagicLampConfig::initialShapeFactor();
     m_modelParameters.bumpDistance = YetAnotherMagicLampConfig::maxBumpDistance();
 
-    m_gridResolution = YetAnotherMagicLampConfig::gridResolution();
+    m_maxQuadSize = CoordinateMapper::boundedGridCellSize(YetAnotherMagicLampConfig::gridResolution());
 }
 
 #ifdef KWIN_PREPAINT_HAS_PRESENT_TIME
@@ -251,7 +252,7 @@ void YetAnotherMagicLampEffect::apply(KWin::EffectWindow* window, int mask, KWin
         return;
     }
 
-    quads = quads.makeGrid(m_gridResolution);
+    quads = quads.makeGrid(m_maxQuadSize);
     (*it).model.apply(quads);
 }
 

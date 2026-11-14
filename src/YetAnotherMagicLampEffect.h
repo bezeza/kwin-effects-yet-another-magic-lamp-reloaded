@@ -110,7 +110,8 @@ private:
     std::unique_ptr<CoordinateMapper::WindowTracker> m_windowTracker;
 
     Model::Parameters m_modelParameters;
-    int m_gridResolution;
+    // Maximum quad edge size passed to KWin::WindowQuadList::makeGrid().
+    int m_maxQuadSize;
 
     QMap<KWin::EffectWindow*, AnimationData> m_animations;
     // Windows waiting for iconGeometry to become valid before animation starts
