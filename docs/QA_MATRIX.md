@@ -19,7 +19,9 @@ Status key:
 | B-07 | Ubuntu rolling with KWin >= 6.6 | Build and all CTest tests pass | CI | PENDING |
 | B-08 | Ubuntu image without KWin >= 6.6 | Workflow reports a deliberate skip, not a false pass | CI | PENDING |
 
-**CI coverage note:** each distro workflow installs its image's latest KWin package. Separate KWin 6.6, 6.7, and 6.8 builds are not pinned yet, so B-01–B-03 remain outside the current CI matrix.
+**CI coverage note:** each distro workflow installs its image's latest KWin
+package. Separate KWin 6.6, 6.7, and 6.8 builds are not pinned yet, so B-01–B-03
+remain outside the current CI matrix.
 
 ## 2. Historical freeze and mesh safety
 

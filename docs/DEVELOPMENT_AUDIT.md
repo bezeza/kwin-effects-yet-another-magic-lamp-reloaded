@@ -43,7 +43,8 @@ PR #3 closes a real unsafe-configuration path, but by itself it does **not** exp
 ### PR #4 — geometry and output lifecycle guards
 
 - Geometry calculations reject non-finite, empty, overflowing, or unusable rectangles before they enter the transform path.
-- Rotation adapter tests now assert KWin-compatible point mapping for all eight rotate/flip transforms, in addition to rectangle round trips.
+- Rotation tests assert KWin-compatible point mapping for all eight rotate/flip
+  transforms, in addition to rectangle round trips.
 - Animation duration and bump settings have runtime bounds, not only UI bounds.
 - Output snapshots track geometry, scale, mode size, and transform changes.
 - Window tracking observes output identity changes and restarts the task-button settling window.
@@ -67,7 +68,8 @@ be checked by an owner, and the workflows must be observed running after that.
 
 - Active models are paused during output/panel changes and are retargeted before resuming.
 - Retry chains are bounded and generation-tagged so stale timers cannot drive a newer attempt.
-- A new minimize during a recovery pause now retargets the existing model before reversing it and clears the paused state; failed retargets release offscreen redirection.
+- A new minimize during recovery retargets the existing model before reversing
+  it and clears the pause; failed retargets release offscreen redirection.
 - Closing panels are excluded from task-button candidate selection.
 - New panels restart the settling window and pending recovery/retry work.
 - The recovery policy is isolated in a KWin-independent helper and has focused policy tests.

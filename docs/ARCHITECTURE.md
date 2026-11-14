@@ -49,8 +49,10 @@ When output or panel topology changes:
 2. A generation-tagged timer waits before resolving the new target.
 3. A valid target updates the model's direction and geometry without replacing the timeline.
 4. The same animation resumes.
-5. If a new minimize arrives during the recovery pause, the existing model is retargeted before its timeline reverses; the start path clears the pause state.
-6. If the target does not return within the bounded recovery window, the effect releases its redirection and visible reference and leaves the operation to KWin.
+5. A new minimize during recovery retargets the model before reversing its timeline.
+   The start path also clears the pause state.
+6. If the target never returns, the effect releases its redirection and visible
+   reference and leaves the operation to KWin.
 
 Panel close events mark the old panel as unavailable. Panel add events restart the settling interval and retry pending work.
 
