@@ -67,12 +67,14 @@ YetAnotherMagicLampEffect::YetAnotherMagicLampEffect()
 {
     m_outputManager = std::make_unique<CoordinateMapper::OutputManager>(KWin::effects);
     m_geometryResolver = std::make_unique<CoordinateMapper::GeometryResolver>(m_outputManager.get());
-    m_windowTracker = std::make_unique<CoordinateMapper::WindowTracker>(m_outputManager.get());
+    m_windowTracker = std::make_unique<CoordinateMapper::WindowTracker>(
+        m_outputManager.get(),
+        [this](KWin::EffectWindow* window) {
+            slotWindowOutputChanged(window);
+        });
 
     connect(m_outputManager.get(), &CoordinateMapper::OutputManager::outputsChanged,
         this, &YetAnotherMagicLampEffect::slotOutputsChanged);
-    connect(m_windowTracker.get(), &CoordinateMapper::WindowTracker::windowOutputChanged,
-        this, &YetAnotherMagicLampEffect::slotWindowOutputChanged);
 
     reconfigure(ReconfigureAll);
 

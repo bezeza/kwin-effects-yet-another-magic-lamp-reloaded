@@ -14,6 +14,8 @@
 #include <QObject>
 #include <QPointer>
 
+#include <functional>
+
 namespace KWin {
 class EffectWindow;
 class LogicalOutput;
@@ -29,10 +31,11 @@ class OutputManager;
 // geometry resolution.
 class WindowTracker final : public QObject
 {
-    Q_OBJECT
-
 public:
-    explicit WindowTracker(OutputManager* outputs, QObject* parent = nullptr);
+    using OutputChangeCallback = std::function<void(KWin::EffectWindow*)>;
+
+    explicit WindowTracker(OutputManager* outputs, OutputChangeCallback outputChangeCallback,
+        QObject* parent = nullptr);
     ~WindowTracker() override = default;
 
     // Returns true only when a new window was registered.
@@ -56,9 +59,6 @@ public:
         return previous != current;
     }
 
-Q_SIGNALS:
-    void windowOutputChanged(KWin::EffectWindow* window);
-
 private:
     struct Entry {
         QElapsedTimer sinceAdded;
@@ -73,6 +73,7 @@ private:
     void handleOutputAboutToBeRemoved(KWin::LogicalOutput* output);
     void resetWindowsOnOutput(KWin::LogicalOutput* output);
 
+    OutputChangeCallback m_outputChangeCallback;
     QHash<KWin::EffectWindow*, Entry> m_entries;
 };
 

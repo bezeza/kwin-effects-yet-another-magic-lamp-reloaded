@@ -16,8 +16,9 @@
 
 namespace CoordinateMapper {
 
-WindowTracker::WindowTracker(OutputManager* outputs, QObject* parent)
+WindowTracker::WindowTracker(OutputManager* outputs, OutputChangeCallback outputChangeCallback, QObject* parent)
     : QObject(parent)
+    , m_outputChangeCallback(outputChangeCallback)
 {
     if (!outputs) {
         return;
@@ -109,7 +110,9 @@ void WindowTracker::updateWindowOutput(KWin::EffectWindow* window)
     if (outputIdentityChanged(it->output.data(), output)) {
         it->output = output;
         it->sinceOutputChange.start();
-        Q_EMIT windowOutputChanged(window);
+        if (m_outputChangeCallback) {
+            m_outputChangeCallback(window);
+        }
     }
 }
 
