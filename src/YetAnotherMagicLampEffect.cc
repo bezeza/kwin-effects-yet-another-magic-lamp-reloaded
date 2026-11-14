@@ -71,6 +71,8 @@ YetAnotherMagicLampEffect::YetAnotherMagicLampEffect()
 
     connect(m_outputManager.get(), &CoordinateMapper::OutputManager::outputsChanged,
         this, &YetAnotherMagicLampEffect::slotOutputsChanged);
+    connect(m_windowTracker.get(), &CoordinateMapper::WindowTracker::windowOutputChanged,
+        this, &YetAnotherMagicLampEffect::slotWindowOutputChanged);
 
     reconfigure(ReconfigureAll);
 
@@ -494,6 +496,38 @@ void YetAnotherMagicLampEffect::slotWindowDeleted(KWin::EffectWindow* w)
     m_pendingMinimize.remove(w);
     m_animations.remove(w);
     logState("window-deleted");
+}
+
+void YetAnotherMagicLampEffect::slotWindowOutputChanged(KWin::EffectWindow* window)
+{
+    if (!window) {
+        return;
+    }
+
+    bool changed = false;
+    auto animation = m_animations.find(window);
+    if (animation != m_animations.end()) {
+        // A window-specific output transition can happen without a global
+        // output reconfiguration. Its old task-button target is no longer safe.
+        unredirect(window);
+        m_animations.erase(animation);
+        changed = true;
+    }
+
+    auto pending = m_pendingMinimize.find(window);
+    if (pending != m_pendingMinimize.end()) {
+        pending->attempts = 0;
+        pending->generation = ++m_pendingGeneration;
+        scheduleMinimizeRetry(window, pending->generation);
+        changed = true;
+    }
+
+    if (changed) {
+        qCDebug(lcMagicLamp).noquote() << "window.output-changed"
+                                       << "window=" << windowId(window);
+        KWin::effects->addRepaintFull();
+        logState("window-output-changed");
+    }
 }
 
 void YetAnotherMagicLampEffect::slotOutputsChanged()

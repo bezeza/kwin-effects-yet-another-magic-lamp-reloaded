@@ -96,6 +96,7 @@ private Q_SLOTS:
     void slotMinimizedChanged(KWin::EffectWindow* w);
     void slotWindowClosed(KWin::EffectWindow* w);
     void slotWindowDeleted(KWin::EffectWindow* w);
+    void slotWindowOutputChanged(KWin::EffectWindow* w);
     void slotOutputsChanged();
     void slotActiveFullScreenEffectChanged();
 

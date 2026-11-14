@@ -109,6 +109,7 @@ void WindowTracker::updateWindowOutput(KWin::EffectWindow* window)
     if (outputIdentityChanged(it->output.data(), output)) {
         it->output = output;
         it->sinceOutputChange.start();
+        Q_EMIT windowOutputChanged(window);
     }
 }
 

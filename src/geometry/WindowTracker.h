@@ -29,6 +29,8 @@ class OutputManager;
 // geometry resolution.
 class WindowTracker final : public QObject
 {
+    Q_OBJECT
+
 public:
     explicit WindowTracker(OutputManager* outputs, QObject* parent = nullptr);
     ~WindowTracker() override = default;
@@ -53,6 +55,9 @@ public:
     {
         return previous != current;
     }
+
+Q_SIGNALS:
+    void windowOutputChanged(KWin::EffectWindow* window);
 
 private:
     struct Entry {
