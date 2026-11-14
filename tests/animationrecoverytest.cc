@@ -25,8 +25,6 @@ private Q_SLOTS:
     void keepsRestoredAnimationPausedUntilNewTargetAppears();
     void dropsRestoredAnimationWhenTargetNeverReturns();
     void dropsAfterRetryLimitIsReached();
-    void startUnpausesAndReversesRunningTimeline();
-    void startUnpausesFreshTimeline();
 };
 
 void AnimationRecoveryTest::dropsRecoveryWhenWindowHasBeenDeleted()
@@ -85,26 +83,6 @@ void AnimationRecoveryTest::dropsAfterRetryLimitIsReached()
 {
     QCOMPARE(decideAnimationRecovery(true, false, false, false, 10, 10),
         AnimationRecoveryDecision::Drop);
-}
-
-void AnimationRecoveryTest::startUnpausesAndReversesRunningTimeline()
-{
-    const auto state = CoordinateMapper::prepareAnimationStart(
-        {true, false, false}, true);
-
-    QVERIFY(!state.paused);
-    QVERIFY(!state.done);
-    QVERIFY(state.reverseTimeline);
-}
-
-void AnimationRecoveryTest::startUnpausesFreshTimeline()
-{
-    const auto state = CoordinateMapper::prepareAnimationStart(
-        {true, true, false}, false);
-
-    QVERIFY(!state.paused);
-    QVERIFY(state.done);
-    QVERIFY(!state.reverseTimeline);
 }
 
 QTEST_GUILESS_MAIN(AnimationRecoveryTest)

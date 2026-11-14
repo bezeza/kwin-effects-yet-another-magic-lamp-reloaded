@@ -8,25 +8,6 @@
 
 namespace CoordinateMapper {
 
-// The start path always clears a recovery pause. If the timeline is still
-// in flight, the caller reverses it instead of replacing the current stage.
-struct AnimationStartState {
-    bool paused = false;
-    bool done = true;
-    bool reverseTimeline = false;
-};
-
-constexpr AnimationStartState prepareAnimationStart(
-    AnimationStartState current, bool timelineRunning) noexcept
-{
-    current.paused = false;
-    current.reverseTimeline = timelineRunning;
-    if (timelineRunning) {
-        current.done = false;
-    }
-    return current;
-}
-
 enum class AnimationRecoveryDecision {
     Retry,
     Resume,
