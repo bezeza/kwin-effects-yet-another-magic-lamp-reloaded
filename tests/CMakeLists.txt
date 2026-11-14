@@ -52,3 +52,10 @@ add_executable(animationlimitstest
 target_include_directories(animationlimitstest PRIVATE ../src)
 target_link_libraries(animationlimitstest Qt6::Core Qt6::Test)
 add_test(NAME animationlimitstest COMMAND animationlimitstest)
+
+add_executable(modelgeometrytest
+    modelgeometrytest.cc
+)
+target_include_directories(modelgeometrytest PRIVATE ../src)
+target_link_libraries(modelgeometrytest Qt6::Core Qt6::Test)
+add_test(NAME modelgeometrytest COMMAND modelgeometrytest)

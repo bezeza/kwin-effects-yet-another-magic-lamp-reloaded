@@ -18,11 +18,27 @@
 
 // Own
 #include "Model.h"
+#include "geometry/ModelGeometry.h"
 #include "kwincompat.h"
+
+#include <algorithm>
+#include <cmath>
 
 static inline std::chrono::milliseconds durationFraction(std::chrono::milliseconds duration, qreal fraction)
 {
-    return std::chrono::milliseconds(qMax(qRound(duration.count() * fraction), 1));
+    constexpr qint64 maximumDurationMs = 9999;
+    if (!std::isfinite(fraction)) {
+        return std::chrono::milliseconds(1);
+    }
+
+    const long double scaled = static_cast<long double>(duration.count())
+        * static_cast<long double>(qMax(fraction, qreal(0)));
+    if (!std::isfinite(scaled)) {
+        return std::chrono::milliseconds(maximumDurationMs);
+    }
+
+    const long double bounded = std::clamp(scaled, 1.0L, static_cast<long double>(maximumDurationMs));
+    return std::chrono::milliseconds(static_cast<qint64>(std::llround(bounded)));
 }
 
 Model::Model(KWin::EffectWindow* window)
@@ -37,66 +53,120 @@ Model::Model(KWin::EffectWindow* window)
 //    determine direction. This correctly handles cross-screen icons: even if
 //    the icon is on a different screen, comparing to the window's screen
 //    center always gives the right direction.
-static Direction realizeDirection(const KWin::EffectWindow* window, const QRectF& iconRect)
+static std::optional<Direction> realizeDirection(const KWin::EffectWindow* window, const QRectF& iconRect)
 {
+    if (!window || !KWin::effects) {
+        return std::nullopt;
+    }
+
     KWin::EffectWindow* panel = nullptr;
+    QRectF panelGeometry;
     for (KWin::EffectWindow* candidate : KWin::effects->stackingOrder()) {
-        if (!candidate->isDock()) {
+        if (!candidate || !candidate->isDock()) {
             continue;
         }
-        if (candidate->frameGeometry().intersects(iconRect)) {
-            panel = candidate;
-            break;
+        const QRectF candidateGeometry = candidate->frameGeometry();
+        if (!ModelGeometry::isFinitePositiveRect(candidateGeometry) || !candidateGeometry.intersects(iconRect)) {
+            continue;
         }
+        panel = candidate;
+        panelGeometry = candidateGeometry;
+        break;
     }
 
     if (panel) {
-        const QRectF windowScreen = KWin::effects->clientArea(KWin::ScreenArea, window);
-        if (panel->frameGeometry().width() >= panel->frameGeometry().height()) {
+        QRectF windowScreen = KWin::effects->clientArea(KWin::ScreenArea, window);
+        if (!ModelGeometry::isFinitePositiveRect(windowScreen)) {
+            windowScreen = window->frameGeometry();
+        }
+        if (!ModelGeometry::isFinitePositiveRect(windowScreen)) {
+            return std::nullopt;
+        }
+
+        if (panelGeometry.width() >= panelGeometry.height()) {
             return iconRect.center().y() <= windowScreen.center().y()
                 ? Direction::Top
                 : Direction::Bottom;
-        } else {
-            return iconRect.center().x() <= windowScreen.center().x()
-                ? Direction::Left
-                : Direction::Right;
         }
+        return iconRect.center().x() <= windowScreen.center().x()
+            ? Direction::Left
+            : Direction::Right;
     }
 
-    // No panel found — fall back to closest screen edge (KDE uses ScreenArea intersect here).
+    // If the icon center is outside every output, use the window's output.
     KWin::LogicalOutput* screen = KWin::effects->screenAt(iconRect.center().toPoint());
+    if (!screen) {
+        screen = window->screen();
+    }
+    if (!screen) {
+        return std::nullopt;
+    }
+
     const QRectF screenRect = KWinCompat::fullScreenArea(KWin::effects, screen);
-    const QPointF c = iconRect.center();
-    const qreal l = qAbs(c.x() - screenRect.left());
-    const qreal t = qAbs(c.y() - screenRect.top());
-    const qreal r = qAbs(screenRect.right() - c.x());
-    const qreal b = qAbs(screenRect.bottom() - c.y());
-    const qreal m = qMin(qMin(l, t), qMin(r, b));
-    if (qFuzzyCompare(l, m))
+    if (!ModelGeometry::isFinitePositiveRect(screenRect)) {
+        return std::nullopt;
+    }
+
+    const QPointF center = iconRect.center();
+    const qreal left = qAbs(center.x() - screenRect.left());
+    const qreal top = qAbs(center.y() - screenRect.top());
+    const qreal right = qAbs(screenRect.right() - center.x());
+    const qreal bottom = qAbs(screenRect.bottom() - center.y());
+    const qreal nearest = qMin(qMin(left, top), qMin(right, bottom));
+    if (!std::isfinite(nearest)) {
+        return std::nullopt;
+    }
+    if (qFuzzyCompare(left, nearest)) {
         return Direction::Left;
-    if (qFuzzyCompare(t, m))
+    }
+    if (qFuzzyCompare(top, nearest)) {
         return Direction::Top;
-    if (qFuzzyCompare(r, m))
+    }
+    if (qFuzzyCompare(right, nearest)) {
         return Direction::Right;
+    }
     return Direction::Bottom;
 }
 
-void Model::start(AnimationKind kind)
+bool Model::start(AnimationKind kind)
 {
     m_kind = kind;
 
     if (m_timeLine.running()) {
+        m_done = false;
         m_timeLine.toggleDirection();
-        return;
+        return true;
     }
 
-    // The caller resolves the target (see resolveIconGeometry()) and only
-    // starts an animation with a valid one; KWin's iconGeometry() is not a
-    // fallback, it may be a task button on another output.
-    Q_ASSERT(m_iconGeometry.isValid());
-    m_direction = realizeDirection(m_window, m_iconGeometry);
+    // Invalid or transient window geometry must not enter the render path:
+    // the transform contains divisions by the window extent and distance to
+    // the task button. Skip the animation and let KWin perform the normal
+    // minimize/restore operation instead.
+    if (!m_window
+        || !ModelGeometry::isFinitePositiveRect(m_window->frameGeometry())
+        || !ModelGeometry::isFinitePositiveRect(m_iconGeometry)) {
+        m_done = true;
+        m_clip = false;
+        return false;
+    }
+
+    const auto direction = realizeDirection(m_window, m_iconGeometry);
+    if (!direction) {
+        m_done = true;
+        m_clip = false;
+        return false;
+    }
+    m_direction = *direction;
     m_bumpDistance = computeBumpDistance();
-    m_shapeFactor = computeShapeFactor();
+
+    const auto shapeFactor = computeShapeFactor();
+    if (!shapeFactor) {
+        m_done = true;
+        m_clip = false;
+        return false;
+    }
+    m_shapeFactor = *shapeFactor;
+    m_done = false;
 
     switch (m_kind) {
     case AnimationKind::Minimize:
@@ -129,6 +199,8 @@ void Model::start(AnimationKind kind)
     default:
         Q_UNREACHABLE();
     }
+
+    return true;
 }
 
 void Model::advance(std::chrono::milliseconds presentTime)
@@ -432,6 +504,10 @@ static void transformQuads(
 
 void Model::apply(KWin::WindowQuadList& quads) const
 {
+    if (!hasValidGeometry()) {
+        return;
+    }
+
     switch (m_stage) {
     case AnimationStage::Bump:
         applyBump(quads);
@@ -531,13 +607,21 @@ void Model::setIconGeometry(const QRectF& rect)
 
 bool Model::needsClip() const
 {
-    return m_clip;
+    return m_clip && hasValidGeometry()
+        && ModelGeometry::isFinitePositiveRect(m_window->expandedGeometry());
 }
 
 QRegion Model::clipRegion() const
 {
+    if (!hasValidGeometry()) {
+        return {};
+    }
+
     const QRectF iconRect = m_iconGeometry;
     QRectF clipRect = m_window->expandedGeometry();
+    if (!ModelGeometry::isFinitePositiveRect(clipRect)) {
+        return {};
+    }
 
     switch (m_direction) {
     case Direction::Top:
@@ -575,7 +659,7 @@ QRegion Model::clipRegion() const
     return clipRect.toAlignedRect();
 }
 
-int Model::computeBumpDistance() const
+qreal Model::computeBumpDistance() const
 {
     const QRectF windowRect = m_window->frameGeometry();
     const QRectF iconRect = m_iconGeometry;
@@ -602,43 +686,31 @@ int Model::computeBumpDistance() const
         Q_UNREACHABLE();
     }
 
-    bumpDistance += std::min(bumpDistance, m_parameters.bumpDistance);
-
-    return bumpDistance;
+    const qreal configuredExtra = std::isfinite(m_parameters.bumpDistance)
+        ? qMax(qreal(0), m_parameters.bumpDistance)
+        : qreal(0);
+    return bumpDistance + std::min(bumpDistance, configuredExtra);
 }
 
-qreal Model::computeShapeFactor() const
+std::optional<qreal> Model::computeShapeFactor() const
 {
-    const QRectF windowRect = m_window->frameGeometry();
-    const QRectF iconRect = m_iconGeometry;
+    return ModelGeometry::shapeFactor(
+        m_direction,
+        m_window->frameGeometry(),
+        m_iconGeometry,
+        m_bumpDistance,
+        m_parameters.shapeFactor);
+}
 
-    int movingExtent = 0;
-    int distanceToIcon = 0;
-    switch (m_direction) {
-    case Direction::Top:
-        movingExtent = windowRect.height();
-        distanceToIcon = windowRect.bottom() - iconRect.bottom() + m_bumpDistance;
-        break;
-
-    case Direction::Right:
-        movingExtent = windowRect.width();
-        distanceToIcon = iconRect.left() - windowRect.left() + m_bumpDistance;
-        break;
-
-    case Direction::Bottom:
-        movingExtent = windowRect.height();
-        distanceToIcon = iconRect.top() - windowRect.top() + m_bumpDistance;
-        break;
-
-    case Direction::Left:
-        movingExtent = windowRect.width();
-        distanceToIcon = windowRect.right() - iconRect.right() + m_bumpDistance;
-        break;
-
-    default:
-        Q_UNREACHABLE();
+bool Model::hasValidGeometry() const
+{
+    if (!m_window) {
+        return false;
     }
 
-    const qreal minimumShapeFactor = static_cast<qreal>(movingExtent) / distanceToIcon;
-    return qMax(m_parameters.shapeFactor, minimumShapeFactor);
+    return ModelGeometry::distanceToIcon(
+        m_direction,
+        m_window->frameGeometry(),
+        m_iconGeometry,
+        m_bumpDistance).has_value();
 }

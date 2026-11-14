@@ -18,6 +18,8 @@ class AnimationLimitsTest : public QObject
 private Q_SLOTS:
     void clampsGridCellSize_data();
     void clampsGridCellSize();
+    void clampsAnimationLimits_data();
+    void clampsAnimationLimits();
 };
 
 void AnimationLimitsTest::clampsGridCellSize_data()
@@ -41,6 +43,31 @@ void AnimationLimitsTest::clampsGridCellSize()
     QFETCH(int, expected);
 
     QCOMPARE(CoordinateMapper::boundedGridCellSize(configured), expected);
+}
+
+void AnimationLimitsTest::clampsAnimationLimits_data()
+{
+    QTest::addColumn<unsigned int>("duration");
+    QTest::addColumn<int>("expectedDuration");
+    QTest::addColumn<unsigned int>("bump");
+    QTest::addColumn<int>("expectedBump");
+
+    QTest::newRow("zero") << 0u << 0 << 0u << 0;
+    QTest::newRow("defaults") << 300u << 300 << 0u << 0;
+    QTest::newRow("ui-maximum") << 9999u << 9999 << 99u << 99;
+    QTest::newRow("oversized-kwinrc") << std::numeric_limits<unsigned int>::max()
+                                      << 9999 << std::numeric_limits<unsigned int>::max() << 99;
+}
+
+void AnimationLimitsTest::clampsAnimationLimits()
+{
+    QFETCH(unsigned int, duration);
+    QFETCH(int, expectedDuration);
+    QFETCH(unsigned int, bump);
+    QFETCH(int, expectedBump);
+
+    QCOMPARE(CoordinateMapper::boundedAnimationDuration(duration), expectedDuration);
+    QCOMPARE(CoordinateMapper::boundedBumpDistance(bump), expectedBump);
 }
 
 QTEST_GUILESS_MAIN(AnimationLimitsTest)

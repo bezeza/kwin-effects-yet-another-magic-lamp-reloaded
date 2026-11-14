@@ -146,26 +146,35 @@ void YetAnotherMagicLampEffect::reconfigure(ReconfigureFlags flags)
     }
     m_modelParameters.shapeCurve = curve;
 
-    const auto baseDuration = KWinCompat::toMilliseconds(
-        animationTime<YetAnotherMagicLampConfig>(std::chrono::milliseconds(300)));
+    const auto clampDuration = [](std::chrono::milliseconds duration) {
+        return std::chrono::milliseconds(qBound<qint64>(
+            1, duration.count(), CoordinateMapper::MaxAnimationDurationMs));
+    };
+    const auto baseDuration = clampDuration(KWinCompat::toMilliseconds(
+        animationTime<YetAnotherMagicLampConfig>(std::chrono::milliseconds(300))));
     const auto configuredSquashDuration = YetAnotherMagicLampConfig::squashDuration();
     m_modelParameters.squashDuration = configuredSquashDuration > 0
-        ? std::chrono::milliseconds(configuredSquashDuration)
+        ? clampDuration(std::chrono::milliseconds(configuredSquashDuration))
         : baseDuration;
     const auto configuredStretchDuration = YetAnotherMagicLampConfig::stretchDuration();
     m_modelParameters.stretchDuration = configuredStretchDuration > 0
-        ? std::chrono::milliseconds(configuredStretchDuration)
-        : std::chrono::milliseconds(qMax(qRound(baseDuration.count() * 0.7), 1));
+        ? clampDuration(std::chrono::milliseconds(configuredStretchDuration))
+        : clampDuration(std::chrono::milliseconds(qMax(qRound(baseDuration.count() * 0.7), 1)));
     const auto configuredUnminimizeStretchDuration = YetAnotherMagicLampConfig::unminimizeStretchDuration();
     m_modelParameters.unminimizeStretchDuration = configuredUnminimizeStretchDuration > 0
-        ? std::chrono::milliseconds(configuredUnminimizeStretchDuration)
+        ? clampDuration(std::chrono::milliseconds(configuredUnminimizeStretchDuration))
         : m_modelParameters.stretchDuration;
     const auto configuredBumpDuration = YetAnotherMagicLampConfig::bumpDuration();
     m_modelParameters.bumpDuration = configuredBumpDuration > 0
-        ? std::chrono::milliseconds(configuredBumpDuration)
+        ? clampDuration(std::chrono::milliseconds(configuredBumpDuration))
         : baseDuration;
-    m_modelParameters.shapeFactor = YetAnotherMagicLampConfig::initialShapeFactor();
-    m_modelParameters.bumpDistance = YetAnotherMagicLampConfig::maxBumpDistance();
+
+    const qreal configuredShapeFactor = YetAnotherMagicLampConfig::initialShapeFactor();
+    m_modelParameters.shapeFactor = std::isfinite(configuredShapeFactor)
+        ? qBound(qreal(0), configuredShapeFactor, qreal(1))
+        : qreal(0.2);
+    m_modelParameters.bumpDistance = CoordinateMapper::boundedBumpDistance(
+        YetAnotherMagicLampConfig::maxBumpDistance());
 
     m_maxQuadSize = CoordinateMapper::boundedGridCellSize(YetAnotherMagicLampConfig::gridResolution());
 }
@@ -339,7 +348,13 @@ void YetAnotherMagicLampEffect::animateMinimize(KWin::EffectWindow* w, const QRe
                                    << "window=" << windowId(w)
                                    << "target=" << target;
     animData.model.setIconGeometry(target);
-    animData.model.start(Model::AnimationKind::Minimize);
+    if (!animData.model.start(Model::AnimationKind::Minimize)) {
+        m_pendingMinimize.remove(w);
+        m_animations.remove(w);
+        qCDebug(lcMagicLamp).noquote() << "minimize.skipped-invalid-geometry"
+                                       << "window=" << windowId(w);
+        return;
+    }
     animData.visibleRef = KWin::EffectWindowVisibleRef(w, KWin::EffectWindow::PAINT_DISABLED_BY_MINIMIZE);
     // Released only now, so the window is never left unreferenced for a frame.
     m_pendingMinimize.remove(w);
@@ -451,7 +466,12 @@ void YetAnotherMagicLampEffect::startUnminimize(KWin::EffectWindow* w)
     animData.model.setWindow(w);
     animData.model.setParameters(m_modelParameters);
     animData.model.setIconGeometry(*target);
-    animData.model.start(Model::AnimationKind::Unminimize);
+    if (!animData.model.start(Model::AnimationKind::Unminimize)) {
+        m_animations.remove(w);
+        qCDebug(lcMagicLamp).noquote() << "unminimize.skipped-invalid-geometry"
+                                       << "window=" << windowId(w);
+        return;
+    }
 
     redirect(w);
 
