@@ -22,6 +22,8 @@ private Q_SLOTS:
     void transformedSize_data();
     void transformedSize();
     void rotate90MatchesKWin();
+    void mapsPointForEveryTransform_data();
+    void mapsPointForEveryTransform();
     void roundTripsRect_data();
     void roundTripsRect();
     void rejectsUnknownTransform();
@@ -58,6 +60,33 @@ void RotationAdapterTest::rotate90MatchesKWin()
 
     QVERIFY(result);
     QCOMPARE(*result, QRectF(200.0, 1520.0, 400.0, 300.0));
+}
+
+void RotationAdapterTest::mapsPointForEveryTransform_data()
+{
+    QTest::addColumn<TransformKind>("transform");
+    QTest::addColumn<QPointF>("expected");
+
+    QTest::newRow("normal") << TransformKind::Normal << QPointF(100.0, 200.0);
+    QTest::newRow("rotate-90") << TransformKind::Rotate90 << QPointF(200.0, 1820.0);
+    QTest::newRow("rotate-180") << TransformKind::Rotate180 << QPointF(1820.0, 880.0);
+    QTest::newRow("rotate-270") << TransformKind::Rotate270 << QPointF(880.0, 100.0);
+    QTest::newRow("flip-x") << TransformKind::FlipX << QPointF(1820.0, 200.0);
+    QTest::newRow("flip-x-90") << TransformKind::FlipX90 << QPointF(200.0, 100.0);
+    QTest::newRow("flip-x-180") << TransformKind::FlipX180 << QPointF(100.0, 880.0);
+    QTest::newRow("flip-x-270") << TransformKind::FlipX270 << QPointF(880.0, 1820.0);
+}
+
+void RotationAdapterTest::mapsPointForEveryTransform()
+{
+    QFETCH(TransformKind, transform);
+    QFETCH(QPointF, expected);
+
+    const auto mapped = RotationAdapter::toTransformed(
+        QPointF(100.0, 200.0), QSizeF(1920.0, 1080.0), transform);
+
+    QVERIFY(mapped);
+    QCOMPARE(*mapped, expected);
 }
 
 void RotationAdapterTest::roundTripsRect_data()
