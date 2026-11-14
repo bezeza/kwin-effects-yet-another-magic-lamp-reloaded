@@ -9,6 +9,7 @@
 
 // Qt
 #include <QList>
+#include <QPointer>
 #include <QPointF>
 #include <QRectF>
 
@@ -20,6 +21,7 @@
 namespace KWin
 {
 class EffectWindow;
+class Window;
 }
 
 namespace CoordinateMapper {
@@ -33,6 +35,7 @@ struct PanelButtonCandidate {
     bool belongsToTargetOutput = false;
     QRectF panelGeometry;
     QRectF buttonGeometry;
+    bool available = true;
 };
 
 // Pure selection logic, kept independent from KWin so its edge cases can be
@@ -51,7 +54,7 @@ inline std::optional<QRectF> nearestButtonOnOutput(
         const QRectF& panel = candidate.panelGeometry;
         const QRectF& button = candidate.buttonGeometry;
 
-        if (!candidate.belongsToTargetOutput || !panel.isValid() || !button.isValid()) {
+        if (!candidate.available || !candidate.belongsToTargetOutput || !panel.isValid() || !button.isValid()) {
             continue;
         }
         if (!std::isfinite(panel.x()) || !std::isfinite(panel.y())
@@ -89,8 +92,12 @@ public:
     // untouched.
     std::optional<QRectF> resolve(KWin::EffectWindow* effectWindow) const;
 
+    // Ignore task-button geometries belonging to a panel that is closing.
+    void panelAboutToClose(KWin::Window* panel);
+
 private:
     OutputManager* m_outputs = nullptr; // owned by YetAnotherMagicLampEffect
+    QList<QPointer<KWin::Window>> m_closingPanels;
 };
 
 } // namespace CoordinateMapper

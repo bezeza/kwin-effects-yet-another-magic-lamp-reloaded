@@ -59,3 +59,10 @@ add_executable(modelgeometrytest
 target_include_directories(modelgeometrytest PRIVATE ../src)
 target_link_libraries(modelgeometrytest Qt6::Core Qt6::Test)
 add_test(NAME modelgeometrytest COMMAND modelgeometrytest)
+
+add_executable(animationrecoverytest
+    animationrecoverytest.cc
+)
+target_include_directories(animationrecoverytest PRIVATE ../src)
+target_link_libraries(animationrecoverytest Qt6::Core Qt6::Test)
+add_test(NAME animationrecoverytest COMMAND animationrecoverytest)
