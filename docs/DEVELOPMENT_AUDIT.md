@@ -73,7 +73,7 @@ verification.
 
 - Active models are paused during output/panel changes and are retargeted before resuming.
 - Retry chains are bounded and generation-tagged so stale timers cannot drive a newer attempt.
-- A new minimize during a recovery pause retargets the existing model before reversing it and clears the paused state; failed retargets release offscreen redirection.
+- A new minimize during recovery retargets the model before reversing it and clears its pause; failed retargets release offscreen redirection.
 - A new minimize during recovery retargets the existing model before reversing
   it and clears the pause; failed retargets release offscreen redirection.
 - A pure start-state helper has regression tests for paused timelines and fresh starts.
