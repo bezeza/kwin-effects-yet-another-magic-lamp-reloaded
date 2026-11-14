@@ -18,7 +18,6 @@ namespace CoordinateMapper {
 
 WindowTracker::WindowTracker(OutputManager* outputs, QObject* parent)
     : QObject(parent)
-    , m_outputs(outputs)
 {
     if (!outputs) {
         return;
@@ -107,7 +106,7 @@ void WindowTracker::updateWindowOutput(KWin::EffectWindow* window)
     }
 
     const KWin::LogicalOutput* output = window->screen();
-    if (outputIdentityChanged(it->output, output)) {
+    if (outputIdentityChanged(it->output.data(), output)) {
         it->output = output;
         it->sinceOutputChange.start();
     }
@@ -120,7 +119,7 @@ void WindowTracker::handleOutputAboutToBeRemoved(KWin::LogicalOutput* output)
     }
 
     for (auto it = m_entries.begin(); it != m_entries.end(); ++it) {
-        if (it->output == output) {
+        if (it->output.data() == output) {
             // Do not retain an output identity after KWin has announced its removal.
             // The subsequent Window::outputChanged signal will record the replacement.
             it->output = nullptr;

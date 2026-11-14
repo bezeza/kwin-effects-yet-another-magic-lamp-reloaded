@@ -12,6 +12,7 @@
 #include <QHash>
 #include <QMetaObject>
 #include <QObject>
+#include <QPointer>
 
 namespace KWin {
 class EffectWindow;
@@ -57,7 +58,7 @@ private:
     struct Entry {
         QElapsedTimer sinceAdded;
         QElapsedTimer sinceOutputChange;
-        const KWin::LogicalOutput* output = nullptr;
+        QPointer<KWin::LogicalOutput> output;
         QMetaObject::Connection geometryConnection;
         QMetaObject::Connection outputConnection;
         QMetaObject::Connection destroyedConnection;
@@ -67,7 +68,6 @@ private:
     void handleOutputAboutToBeRemoved(KWin::LogicalOutput* output);
     void resetWindowsOnOutput(KWin::LogicalOutput* output);
 
-    OutputManager* m_outputs = nullptr; // owned by YetAnotherMagicLampEffect
     QHash<KWin::EffectWindow*, Entry> m_entries;
 };
 
