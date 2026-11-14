@@ -21,8 +21,6 @@
 // Own
 #include "common.h"
 
-#include <optional>
-
 // kwineffects
 #include <effect/effecthandler.h>
 #include <effect/effectwindow.h>
