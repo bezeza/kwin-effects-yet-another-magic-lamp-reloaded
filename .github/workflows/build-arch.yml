@@ -2,13 +2,22 @@ name: Build (Arch Linux)
 
 on:
   push:
-    branches: [master]
+    branches: [master, feature/coordinate-mapper-2.0, 'fix/**']
   pull_request:
-    branches: [master]
+    branches: [master, feature/coordinate-mapper-2.0, 'fix/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     container: archlinux:latest
 
     steps:
@@ -24,7 +33,10 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Configure
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr -DBUILD_TESTING=ON
 
       - name: Build
-        run: cmake --build build --parallel
+        run: cmake --build build --parallel 2
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure --timeout 60 --parallel 2
