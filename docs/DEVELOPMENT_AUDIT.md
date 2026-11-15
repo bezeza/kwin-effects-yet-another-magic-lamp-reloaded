@@ -24,6 +24,24 @@ Actions runs for the inspected heads; the subsequent CI results are recorded bel
 
 These results validate the current stacked branch builds and registered QtTest suites. They do not validate compositor signal ordering, actual rendering, output hotplug, panel replacement, or the historical `GridResolution=40` freeze. Those still require nested KWin or desktop testing.
 
+
+
+## Version compatibility evidence (2026-11-15)
+
+- The README declares KWin 6.6 or later as the supported minimum.
+- Current CI logs confirm KWin 6.7.5 on Ubuntu rolling (10/10 CTest targets),
+  KWin 6.8.3 on Fedora (10/10), and KWin 6.8.2 on Arch and openSUSE Tumbleweed
+  (9/9 on each).
+- These runs prove successful builds and registered tests on KWin 6.7 and 6.8.
+  They do not prove the KWin 6.6 minimum because none of the current images is
+  pinned to that release.
+- The Ubuntu workflow checks for KWin >= 6.6 before building, but the
+  below-minimum/no-package skip path has not been exercised. CMake currently
+  calls `find_package(KWin REQUIRED)` without an explicit 6.6 version argument;
+  the README and Ubuntu workflow therefore carry the visible minimum-version
+  policy.
+- No source changes or additional tests were made for this audit.
+
 ## Current PR stack
 
 Merge in this order; each PR is based on the preceding branch:
@@ -140,7 +158,7 @@ default state and explicit geometry/direction defaults. A successful `start()` s
 
 1. The original freeze at `GridResolution=40` has no confirmed root cause in the current evidence.
 2. PR #6 and PR #7 current heads pass their CI matrices; PR #3/#4 and earlier base branches have not each been independently revalidated.
-3. KWin 6.6, 6.7, and 6.8 compile compatibility has not been independently reproduced by the current CI.
+3. KWin 6.7.5 and 6.8.2/6.8.3 now have passing CI build evidence; KWin 6.6 remains unverified. The Ubuntu workflow checks the 6.6 floor, but CMake does not enforce that minimum directly.
 4. Actual output hotplug and Plasma panel lifecycle behavior still require nested-session tests.
 5. Mixed-DPI, rotated outputs, and multi-task-manager grouping need manual validation.
 
