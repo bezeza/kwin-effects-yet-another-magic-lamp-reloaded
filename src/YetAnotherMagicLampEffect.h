@@ -107,6 +107,8 @@ private:
     void animateMinimize(KWin::EffectWindow* w, const QRectF& target);
     void startUnminimize(KWin::EffectWindow* w);
     void scheduleMinimizeRetry(KWin::EffectWindow* w, quint64 generation);
+    void restartPendingMinimizeRetries();
+    void recoverActiveAnimations();
     void queueAnimationRecovery(KWin::EffectWindow* w);
     void scheduleAnimationRecovery(KWin::EffectWindow* w, quint64 generation);
     void logState(const char* event) const;

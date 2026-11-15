@@ -18,6 +18,7 @@
 
 // Own
 #include "Model.h"
+#include "geometry/AnimationRecovery.h"
 #include "geometry/ModelGeometry.h"
 #include "kwincompat.h"
 
@@ -132,13 +133,15 @@ bool Model::start(AnimationKind kind)
 {
     m_kind = kind;
 
-    if (m_timeLine.running()) {
-        m_done = false;
+    const auto startState = CoordinateMapper::prepareAnimationStart(
+        {m_paused, m_done, false}, m_timeLine.running());
+    m_paused = startState.paused;
+    m_done = startState.done;
+
+    if (startState.reverseTimeline) {
         m_timeLine.toggleDirection();
         return true;
     }
-
-    m_paused = false;
 
     // Invalid or transient window geometry must not enter the render path:
     // the transform contains divisions by the window extent and distance to

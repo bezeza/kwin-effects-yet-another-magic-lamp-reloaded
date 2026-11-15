@@ -131,13 +131,18 @@ void WindowTracker::handleOutputAboutToBeRemoved(KWin::LogicalOutput* output)
     }
 }
 
+void WindowTracker::notifyTaskButtonsMayChange()
+{
+    for (auto it = m_entries.begin(); it != m_entries.end(); ++it) {
+        it->sinceOutputChange.start();
+    }
+}
+
 void WindowTracker::resetAllWindows()
 {
     // Any output addition, removal, mode, scale, transform, or layout change
     // can make Plasma relayout task managers on more than the changed output.
-    for (auto it = m_entries.begin(); it != m_entries.end(); ++it) {
-        it->sinceOutputChange.start();
-    }
+    notifyTaskButtonsMayChange();
 }
 
 } // namespace CoordinateMapper

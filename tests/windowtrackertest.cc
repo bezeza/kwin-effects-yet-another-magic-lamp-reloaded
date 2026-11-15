@@ -21,6 +21,7 @@ private Q_SLOTS:
     void detectsOutputSwitch();
     void detectsOutputRemovalAndReattachment();
     void ignoresUnchangedOutputIdentity();
+    void waitsForTaskButtonsAfterOutputRemovalAndReattachment();
 };
 
 void WindowTrackerTest::remainsUnsettledUntilBothTimersExpire()
@@ -67,6 +68,18 @@ void WindowTrackerTest::ignoresUnchangedOutputIdentity()
 
     QVERIFY(!CoordinateMapper::WindowTracker::outputIdentityChanged(&output, &output));
     QVERIFY(!CoordinateMapper::WindowTracker::outputIdentityChanged(nullptr, nullptr));
+}
+
+void WindowTrackerTest::waitsForTaskButtonsAfterOutputRemovalAndReattachment()
+{
+    int originalOutput = 0;
+    int reconnectedOutput = 0;
+
+    QVERIFY(CoordinateMapper::WindowTracker::outputIdentityChanged(&originalOutput, nullptr));
+    QVERIFY(CoordinateMapper::WindowTracker::outputIdentityChanged(nullptr, &reconnectedOutput));
+    QVERIFY(!CoordinateMapper::WindowTracker::hasSettled(5000, 0, 1000));
+    QVERIFY(!CoordinateMapper::WindowTracker::hasSettled(5000, 999, 1000));
+    QVERIFY(CoordinateMapper::WindowTracker::hasSettled(5000, 1000, 1000));
 }
 
 QTEST_GUILESS_MAIN(WindowTrackerTest)

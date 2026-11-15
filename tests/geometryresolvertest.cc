@@ -27,6 +27,8 @@ private Q_SLOTS:
     void ignoresInvalidPanelGeometry();
     void ignoresOverflowingButtonGeometry();
     void rejectsNonFiniteWindowCenter();
+    void ignoresClosingPanelCandidate();
+    void selectsAvailableReplacementAfterPanelCloses();
 };
 
 void GeometryResolverTest::selectsNearestButtonOnTargetOutput()
@@ -126,6 +128,29 @@ void GeometryResolverTest::rejectsNonFiniteWindowCenter()
 
     const QPointF invalidCenter(std::numeric_limits<qreal>::quiet_NaN(), 740.0);
     QVERIFY(!nearestButtonOnOutput(candidates, invalidCenter));
+}
+
+void GeometryResolverTest::ignoresClosingPanelCandidate()
+{
+    const QList<PanelButtonCandidate> candidates{
+        {true, QRectF(0.0, 700.0, 1024.0, 68.0), QRectF(400.0, 710.0, 40.0, 40.0), false},
+    };
+
+    QVERIFY(!nearestButtonOnOutput(candidates, QPointF(500.0, 740.0)));
+}
+
+void GeometryResolverTest::selectsAvailableReplacementAfterPanelCloses()
+{
+    const QRectF oldButton(400.0, 710.0, 40.0, 40.0);
+    const QRectF replacementButton(500.0, 710.0, 40.0, 40.0);
+    const QList<PanelButtonCandidate> candidates{
+        {true, QRectF(0.0, 700.0, 1024.0, 68.0), oldButton, false},
+        {true, QRectF(0.0, 700.0, 1024.0, 68.0), replacementButton, true},
+    };
+
+    const auto result = nearestButtonOnOutput(candidates, QPointF(500.0, 740.0));
+    QVERIFY(result);
+    QCOMPARE(*result, replacementButton);
 }
 
 QTEST_GUILESS_MAIN(GeometryResolverTest)
