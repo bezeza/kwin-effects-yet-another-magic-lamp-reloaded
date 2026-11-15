@@ -11,17 +11,20 @@ Status key:
 | ID | Scenario | Expected result | Type | Status |
 |---|---|---|---|---|
 | B-01 | Build against KWin 6.6 | Plugin and KCM compile | Pinned CI / MANUAL | PENDING |
-| B-02 | Build against KWin 6.7 | Plugin and KCM compile | Pinned CI / MANUAL | PENDING |
-| B-03 | Build against KWin 6.8 | Plugin and KCM compile, bool paintWindow probe selected | Pinned CI / MANUAL | PENDING |
+| B-02 | Build against KWin 6.7 | Plugin and KCM compile | Current distro CI | CI PASS — Ubuntu rolling, KWin 6.7.5 (10/10) |
+| B-03 | Build against KWin 6.8 | Plugin and KCM compile, bool paintWindow probe selected | Current distro CI | CI PASS — Fedora 6.8.3 (10/10); Arch/openSUSE 6.8.2 (9/9 each) |
 | B-04 | Fedora | Build and all CTest tests pass | CI | CI PASS |
 | B-05 | Arch Linux | Build and all CTest tests pass | CI | CI PASS |
 | B-06 | openSUSE Tumbleweed | Build and all CTest tests pass | CI | CI PASS |
-| B-07 | Ubuntu rolling with KWin >= 6.6 | Build and all CTest tests pass | CI | CI PASS |
+| B-07 | Ubuntu rolling with KWin >= 6.6 | Build and all CTest tests pass | CI | CI PASS — KWin 6.7.5 (10/10) |
 | B-08 | Ubuntu image without KWin >= 6.6 | Workflow reports a deliberate skip, not a false pass | CI | PENDING |
 
-**CI coverage note:** each distro workflow installs its image's latest KWin
-package. Separate KWin 6.6, 6.7, and 6.8 builds are not pinned yet, so B-01–B-03
-remain outside the current CI matrix.
+**CI coverage note:** the latest verified distro images installed KWin 6.7.5
+(Ubuntu rolling), 6.8.3 (Fedora), and 6.8.2 (Arch and openSUSE Tumbleweed).
+This provides current build and CTest evidence for KWin 6.7 and 6.8, but these
+are moving distro packages rather than pinned reproducible baselines. KWin 6.6
+remains unverified, and the Ubuntu below-minimum/no-package skip path in B-08
+has not been exercised.
 
 ## 2. Historical freeze and mesh safety
 
