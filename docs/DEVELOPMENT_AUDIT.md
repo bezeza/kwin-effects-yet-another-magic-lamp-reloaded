@@ -11,9 +11,18 @@ The review covered the changed-file lists and diffs, the effect lifecycle/render
 tracking, task-button resolution, recovery policy, QtTest registration, and the four CI workflow definitions.
 
 The review environment has a C++20 compiler but does not have the Qt 6 or KWin development toolchain. A standalone C++20
-smoke test of the KWin-independent animation recovery policy header passes. GitHub currently reports no Actions runs or
-commit statuses for the inspected PR #6/#7 heads. Full plugin compilation, QtTest execution, distro compatibility, and
-compositor behavior remain unverified here.
+smoke test of the KWin-independent animation recovery policy header passes. The initial 2026-11-14 audit had no recorded
+Actions runs for the inspected heads; the subsequent CI results are recorded below.
+
+## Validation update (2026-11-15)
+
+- PR #6 head `ac50b3b6d09215d2327af9573210b123ad9681ae`: all 8/8 push and pull-request workflow runs passed across Fedora, Arch, openSUSE, and Ubuntu.
+- PR #7 synchronized head `0615cc3441e408e5b6156ddcbe753f43a98bdb26`: all 4/4 pull-request workflows passed across the same distributions.
+- CTest totals on both heads: Fedora 10/10, Arch 9/9, openSUSE 9/9, Ubuntu 10/10.
+- The pending-minimize retry policy now has eight additional regression cases, including target arrival on the final permitted retry.
+- The all-eight-transform point-mapping tests match KWin 6.8's `OutputTransform::map()` implementation and pass CI.
+
+These results validate the current stacked branch builds and registered QtTest suites. They do not validate compositor signal ordering, actual rendering, output hotplug, panel replacement, or the historical `GridResolution=40` freeze. Those still require nested KWin or desktop testing.
 
 ## Current PR stack
 
@@ -74,8 +83,9 @@ There is a second, separate signal: PRs #1 and #2 target `master` and should mat
 the repository-wide Actions run list and the inspected commit statuses still contain no runs/checks. That warrants an
 owner-side check of whether GitHub Actions and the individual workflows are enabled or restricted by repository policy.
 
-No distro build or QtTest result can be treated as passed. Before relying on CI, verify the repository Actions settings and
-ensure a workflow present on the default branch covers the intended PR base branches.
+At the time of the original 2026-11-14 audit, no distro build or QtTest result was available. The 2026-11-15 results
+above now validate the current PR #6 and PR #7 heads. The separate default-branch bootstrap issue remains: PR #8 is still
+needed to make the updated workflows available from `master`.
 
 ### PR #6 — animation and panel lifecycle recovery
 
@@ -129,7 +139,7 @@ default state and explicit geometry/direction defaults. A successful `start()` s
 ## Open risks
 
 1. The original freeze at `GridResolution=40` has no confirmed root cause in the current evidence.
-2. No Actions results exist for PR #3–#6.
+2. PR #6 and PR #7 current heads pass their CI matrices; PR #3/#4 and earlier base branches have not each been independently revalidated.
 3. KWin 6.6, 6.7, and 6.8 compile compatibility has not been independently reproduced by the current CI.
 4. Actual output hotplug and Plasma panel lifecycle behavior still require nested-session tests.
 5. Mixed-DPI, rotated outputs, and multi-task-manager grouping need manual validation.
