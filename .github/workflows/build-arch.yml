@@ -39,4 +39,4 @@ jobs:
         run: cmake --build build --parallel 2
 
       - name: Test
-        run: ctest --test-dir build --output-on-failure --timeout 60 --parallel 2
+        run: ctest --test-dir build --output-on-failure --timeout 60 --parallel 2 --no-tests=error
