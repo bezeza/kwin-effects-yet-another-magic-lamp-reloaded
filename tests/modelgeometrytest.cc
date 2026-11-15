@@ -26,6 +26,7 @@ private Q_SLOTS:
     void calculatesShapeFactorWithFractionalGeometry();
     void rejectsNonFiniteShapeFactor();
     void recalculatesGeometryForNewTarget();
+    void calculatesTargetBumpForEveryDirection();
     void rejectsInvalidRetargetGeometry();
 };
 
@@ -121,6 +122,34 @@ void ModelGeometryTest::recalculatesGeometryForNewTarget()
     QCOMPARE(moved->bumpDistance, 100.0);
     QVERIFY(first->shapeFactor != moved->shapeFactor);
     QVERIFY(std::isfinite(moved->shapeFactor));
+}
+
+void ModelGeometryTest::calculatesTargetBumpForEveryDirection()
+{
+    const QRectF window(100, 100, 800, 600);
+
+    const auto top = ModelGeometry::geometryForTarget(
+        Direction::Top, window, QRectF(400, 150, 40, 40), 10, 0.2);
+    const auto right = ModelGeometry::geometryForTarget(
+        Direction::Right, window, QRectF(850, 300, 40, 40), 10, 0.2);
+    const auto bottom = ModelGeometry::geometryForTarget(
+        Direction::Bottom, window, QRectF(400, 650, 40, 40), 10, 0.2);
+    const auto left = ModelGeometry::geometryForTarget(
+        Direction::Left, window, QRectF(100, 300, 40, 40), 10, 0.2);
+
+    QVERIFY(top);
+    QVERIFY(right);
+    QVERIFY(bottom);
+    QVERIFY(left);
+    QCOMPARE(top->bumpDistance, 100.0);
+    QCOMPARE(right->bumpDistance, 60.0);
+    QCOMPARE(bottom->bumpDistance, 60.0);
+    QCOMPARE(left->bumpDistance, 50.0);
+
+    for (const auto* geometry : {&*top, &*right, &*bottom, &*left}) {
+        QVERIFY(std::isfinite(geometry->shapeFactor));
+        QVERIFY(geometry->shapeFactor >= 0.0);
+    }
 }
 
 void ModelGeometryTest::rejectsInvalidRetargetGeometry()
