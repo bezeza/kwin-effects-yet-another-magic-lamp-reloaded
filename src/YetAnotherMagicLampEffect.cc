@@ -565,39 +565,46 @@ void YetAnotherMagicLampEffect::scheduleMinimizeRetry(KWin::EffectWindow* w, qui
         if (it == m_pendingMinimize.end() || it->generation != generation) {
             return; // unminimized, cancelled by a full-screen effect, or superseded
         }
-        if (!win->isMinimized()) {
-            m_pendingMinimize.erase(it);
-            return;
+        const bool minimized = win->isMinimized();
+        const bool fullScreen = KWin::effects->activeFullScreenEffect() != nullptr;
+        if (minimized && !fullScreen) {
+            ++it->attempts;
         }
-        if (KWin::effects->activeFullScreenEffect()) {
-            // slotActiveFullScreenEffectChanged() normally got here first.
-            m_pendingMinimize.erase(it);
-            return;
-        }
-        ++it->attempts;
-        // Resolved once and handed on as is: resolving again in
-        // startMinimize() could come back empty and leave this entry, and the
-        // visible reference it holds, behind with no timer to release it.
-        const auto target = m_geometryResolver->resolve(win);
-        if (target) {
+
+        // Resolve only while the window is still minimized and no fullscreen
+        // effect owns the screen. The result is passed unchanged to the
+        // animation path so it cannot disappear between two lookups.
+        const auto target = minimized && !fullScreen
+            ? m_geometryResolver->resolve(win)
+            : std::optional<QRectF>{};
+        const bool settled = minimized && !fullScreen
+            ? m_windowTracker->taskButtonsSettled(win, s_taskButtonsSettleMs)
+            : false;
+        const auto decision = CoordinateMapper::decideMinimizeRetry(
+            true, minimized, fullScreen, target.has_value(), settled,
+            it->attempts, s_iconGeometryMaxRetries, s_settledRetries);
+
+        if (decision == CoordinateMapper::MinimizeRetryDecision::Animate) {
             qCDebug(lcMagicLamp).noquote() << "minimize.icon-geometry-arrived"
                                            << "window=" << windowId(win)
                                            << "attempts=" << it->attempts;
             animateMinimize(win, *target);
             return;
         }
-        const bool settled = m_windowTracker->taskButtonsSettled(win, s_taskButtonsSettleMs);
-        if (it->attempts >= s_iconGeometryMaxRetries
-            || (settled && it->attempts >= s_settledRetries)) {
-            qCDebug(lcMagicLamp).noquote() << "minimize.no-icon-geometry"
-                                           << "window=" << windowId(win)
-                                           << "attempts=" << it->attempts
-                                           << "settled=" << settled
-                                           << "action=hide-without-animation";
+
+        if (decision == CoordinateMapper::MinimizeRetryDecision::Drop) {
+            if (minimized && !fullScreen) {
+                qCDebug(lcMagicLamp).noquote() << "minimize.no-icon-geometry"
+                                               << "window=" << windowId(win)
+                                               << "attempts=" << it->attempts
+                                               << "settled=" << settled
+                                               << "action=hide-without-animation";
+            }
             m_pendingMinimize.erase(it);
             logState("wait-ended");
             return;
         }
+
         qCDebug(lcMagicLamp).noquote() << "minimize.waiting-for-icon-geometry"
                                        << "window=" << windowId(win)
                                        << "attempts=" << it->attempts

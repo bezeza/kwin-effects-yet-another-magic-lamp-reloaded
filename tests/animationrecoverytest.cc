@@ -9,8 +9,10 @@
 #include <QTest>
 
 using CoordinateMapper::AnimationRecoveryDecision;
+using CoordinateMapper::MinimizeRetryDecision;
 using CoordinateMapper::MissingMinimizeTargetAction;
 using CoordinateMapper::decideAnimationRecovery;
+using CoordinateMapper::decideMinimizeRetry;
 using CoordinateMapper::decideMissingMinimizeTarget;
 
 class AnimationRecoveryTest : public QObject
@@ -31,6 +33,14 @@ private Q_SLOTS:
     void startUnpausesFreshTimeline();
     void waitsForTargetWhenNoAnimationExists();
     void cancelsActiveAnimationWhenMinimizeTargetIsMissing();
+    void dropsMinimizeRetryWhenWindowHasBeenDeleted();
+    void dropsMinimizeRetryWhenWindowWasRestored();
+    void dropsMinimizeRetryWhenFullscreenTakesOver();
+    void retriesWhileTaskButtonsAreStillSettling();
+    void animatesWhenTargetAppearsOnLastRetry();
+    void dropsWhenTaskButtonsAreSettledWithoutTarget();
+    void dropsWhenMinimizeRetryLimitIsReached();
+    void dropsWhenMinimizeRetryLimitIsDisabled();
 };
 
 void AnimationRecoveryTest::dropsRecoveryWhenWindowHasBeenDeleted()
@@ -121,6 +131,55 @@ void AnimationRecoveryTest::cancelsActiveAnimationWhenMinimizeTargetIsMissing()
 {
     QCOMPARE(decideMissingMinimizeTarget(true),
         MissingMinimizeTargetAction::CancelExistingAnimation);
+}
+
+
+void AnimationRecoveryTest::dropsMinimizeRetryWhenWindowHasBeenDeleted()
+{
+    QCOMPARE(decideMinimizeRetry(false, true, false, false, false, 1, 6, 1),
+        MinimizeRetryDecision::Drop);
+}
+
+void AnimationRecoveryTest::dropsMinimizeRetryWhenWindowWasRestored()
+{
+    QCOMPARE(decideMinimizeRetry(true, false, false, false, false, 0, 6, 1),
+        MinimizeRetryDecision::Drop);
+}
+
+void AnimationRecoveryTest::dropsMinimizeRetryWhenFullscreenTakesOver()
+{
+    QCOMPARE(decideMinimizeRetry(true, true, true, false, false, 1, 6, 1),
+        MinimizeRetryDecision::Drop);
+}
+
+void AnimationRecoveryTest::retriesWhileTaskButtonsAreStillSettling()
+{
+    QCOMPARE(decideMinimizeRetry(true, true, false, false, false, 5, 6, 1),
+        MinimizeRetryDecision::Retry);
+}
+
+void AnimationRecoveryTest::animatesWhenTargetAppearsOnLastRetry()
+{
+    QCOMPARE(decideMinimizeRetry(true, true, false, true, true, 6, 6, 1),
+        MinimizeRetryDecision::Animate);
+}
+
+void AnimationRecoveryTest::dropsWhenTaskButtonsAreSettledWithoutTarget()
+{
+    QCOMPARE(decideMinimizeRetry(true, true, false, false, true, 1, 6, 1),
+        MinimizeRetryDecision::Drop);
+}
+
+void AnimationRecoveryTest::dropsWhenMinimizeRetryLimitIsReached()
+{
+    QCOMPARE(decideMinimizeRetry(true, true, false, false, false, 6, 6, 1),
+        MinimizeRetryDecision::Drop);
+}
+
+void AnimationRecoveryTest::dropsWhenMinimizeRetryLimitIsDisabled()
+{
+    QCOMPARE(decideMinimizeRetry(true, true, false, false, false, 1, 0, 1),
+        MinimizeRetryDecision::Drop);
 }
 
 QTEST_GUILESS_MAIN(AnimationRecoveryTest)

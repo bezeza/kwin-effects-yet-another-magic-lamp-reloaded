@@ -70,4 +70,39 @@ constexpr AnimationRecoveryDecision decideAnimationRecovery(
     return AnimationRecoveryDecision::Drop;
 }
 
+
+enum class MinimizeRetryDecision {
+    Retry,
+    Animate,
+    Drop,
+};
+
+// Decide whether a pending minimize should wait for Plasma's task-button
+// geometry, start its animation, or release the visible reference and fall
+// back to KWin. A target found on the final permitted attempt still wins.
+constexpr MinimizeRetryDecision decideMinimizeRetry(
+    bool windowAlive,
+    bool windowMinimized,
+    bool fullScreenEffectActive,
+    bool targetReady,
+    bool taskButtonsSettled,
+    int attempt,
+    int maxAttempts,
+    int settledRetries) noexcept
+{
+    if (!windowAlive || !windowMinimized || fullScreenEffectActive) {
+        return MinimizeRetryDecision::Drop;
+    }
+    if (targetReady) {
+        return MinimizeRetryDecision::Animate;
+    }
+    if (maxAttempts <= 0 || attempt >= maxAttempts) {
+        return MinimizeRetryDecision::Drop;
+    }
+    if (taskButtonsSettled && (settledRetries <= 0 || attempt >= settledRetries)) {
+        return MinimizeRetryDecision::Drop;
+    }
+    return MinimizeRetryDecision::Retry;
+}
+
 } // namespace CoordinateMapper
