@@ -42,4 +42,9 @@ jobs:
         run: cmake --build build --parallel 2
 
       - name: Test
-        run: ctest --test-dir build --output-on-failure --timeout 60 --parallel 2
+        if: ${{ hashFiles('tests/CMakeLists.txt') != '' }}
+        run: ctest --test-dir build --output-on-failure --timeout 60 --parallel 2 --no-tests=error
+
+      - name: Explain skipped tests in bootstrap-only refs
+        if: ${{ hashFiles('tests/CMakeLists.txt') == '' }}
+        run: echo "::notice::No tests/CMakeLists.txt in this ref; this is expected for the CI bootstrap branch. The QtTest suite is added by the stacked code PRs."
