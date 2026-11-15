@@ -7,6 +7,9 @@
 
 #pragma once
 
+#include <cstdint>
+#include <limits>
+
 namespace CoordinateMapper {
 
 // KWin's WindowQuadList::makeGrid() expects a strictly positive maximum
@@ -18,6 +21,28 @@ inline constexpr unsigned int MinGridCellSize = 16;
 inline constexpr unsigned int MaxGridCellSize = 99;
 inline constexpr unsigned int MaxAnimationDurationMs = 9999;
 inline constexpr unsigned int MaxBumpDistance = 99;
+ 
+// Estimate the number of rectangular cells produced for one full-window quad.
+// A real KWin WindowQuadList may contain multiple source quads, so this is a
+// diagnostic estimate rather than a promise about the final rendered mesh.
+constexpr std::uint64_t estimatedGridQuadCount(std::uint64_t width,
+                                               std::uint64_t height,
+                                               unsigned int maxQuadSize) noexcept
+{
+    if (width == 0 || height == 0 || maxQuadSize == 0) {
+        return 0;
+    }
+
+    const std::uint64_t cellSize = maxQuadSize;
+    const std::uint64_t columns = width / cellSize + (width % cellSize == 0 ? 0 : 1);
+    const std::uint64_t rows = height / cellSize + (height % cellSize == 0 ? 0 : 1);
+    const std::uint64_t maximum = std::numeric_limits<std::uint64_t>::max();
+    if (rows != 0 && columns > maximum / rows) {
+        return maximum;
+    }
+    return columns * rows;
+}
+
 
 constexpr int boundedAnimationDuration(long long configuredValue) noexcept
 {

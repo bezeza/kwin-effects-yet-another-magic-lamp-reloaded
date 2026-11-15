@@ -365,7 +365,9 @@ bool Model::done() const
 }
 
 struct TransformParameters {
-    QEasingCurve shapeCurve;
+    // The model owns this implicitly-shared curve for the full paint call.
+    // Keep a pointer here to avoid a per-frame QEasingCurve copy/refcount.
+    const QEasingCurve* shapeCurve = nullptr;
     Direction direction;
     QRectF iconRect;
     qreal stretchProgress;
@@ -395,8 +397,8 @@ static void transformQuadsLeft(
         const qreal leftOffset = quad[0].x() - interpolate(0.0, distance, params.squashProgress);
         const qreal rightOffset = quad[2].x() - interpolate(0.0, distance, params.squashProgress);
 
-        const qreal leftScale = params.stretchProgress * params.shapeCurve.valueForProgress((windowRect.width() - leftOffset) / distance);
-        const qreal rightScale = params.stretchProgress * params.shapeCurve.valueForProgress((windowRect.width() - rightOffset) / distance);
+        const qreal leftScale = params.stretchProgress * params.shapeCurve->valueForProgress((windowRect.width() - leftOffset) / distance);
+        const qreal rightScale = params.stretchProgress * params.shapeCurve->valueForProgress((windowRect.width() - rightOffset) / distance);
 
         const qreal targetTopLeftY = iconRect.y() + iconRect.height() * quad[0].y() / windowRect.height();
         const qreal targetTopRightY = iconRect.y() + iconRect.height() * quad[1].y() / windowRect.height();
@@ -434,8 +436,8 @@ static void transformQuadsTop(
         const qreal topOffset = quad[0].y() - interpolate(0.0, distance, params.squashProgress);
         const qreal bottomOffset = quad[2].y() - interpolate(0.0, distance, params.squashProgress);
 
-        const qreal topScale = params.stretchProgress * params.shapeCurve.valueForProgress((windowRect.height() - topOffset) / distance);
-        const qreal bottomScale = params.stretchProgress * params.shapeCurve.valueForProgress((windowRect.height() - bottomOffset) / distance);
+        const qreal topScale = params.stretchProgress * params.shapeCurve->valueForProgress((windowRect.height() - topOffset) / distance);
+        const qreal bottomScale = params.stretchProgress * params.shapeCurve->valueForProgress((windowRect.height() - bottomOffset) / distance);
 
         const qreal targetTopLeftX = iconRect.x() + iconRect.width() * quad[0].x() / windowRect.width();
         const qreal targetTopRightX = iconRect.x() + iconRect.width() * quad[1].x() / windowRect.width();
@@ -473,8 +475,8 @@ static void transformQuadsRight(
         const qreal leftOffset = quad[0].x() + interpolate(0.0, distance, params.squashProgress);
         const qreal rightOffset = quad[2].x() + interpolate(0.0, distance, params.squashProgress);
 
-        const qreal leftScale = params.stretchProgress * params.shapeCurve.valueForProgress(leftOffset / distance);
-        const qreal rightScale = params.stretchProgress * params.shapeCurve.valueForProgress(rightOffset / distance);
+        const qreal leftScale = params.stretchProgress * params.shapeCurve->valueForProgress(leftOffset / distance);
+        const qreal rightScale = params.stretchProgress * params.shapeCurve->valueForProgress(rightOffset / distance);
 
         const qreal targetTopLeftY = iconRect.y() + iconRect.height() * quad[0].y() / windowRect.height();
         const qreal targetTopRightY = iconRect.y() + iconRect.height() * quad[1].y() / windowRect.height();
@@ -512,8 +514,8 @@ static void transformQuadsBottom(
         const qreal topOffset = quad[0].y() + interpolate(0.0, distance, params.squashProgress);
         const qreal bottomOffset = quad[2].y() + interpolate(0.0, distance, params.squashProgress);
 
-        const qreal topScale = params.stretchProgress * params.shapeCurve.valueForProgress(topOffset / distance);
-        const qreal bottomScale = params.stretchProgress * params.shapeCurve.valueForProgress(bottomOffset / distance);
+        const qreal topScale = params.stretchProgress * params.shapeCurve->valueForProgress(topOffset / distance);
+        const qreal bottomScale = params.stretchProgress * params.shapeCurve->valueForProgress(bottomOffset / distance);
 
         const qreal targetTopLeftX = iconRect.x() + iconRect.width() * quad[0].x() / windowRect.width();
         const qreal targetTopRightX = iconRect.x() + iconRect.width() * quad[1].x() / windowRect.width();
@@ -590,7 +592,7 @@ void Model::apply(KWin::WindowQuadList& quads) const
 void Model::applyBump(KWin::WindowQuadList& quads) const
 {
     TransformParameters params;
-    params.shapeCurve = m_parameters.shapeCurve;
+    params.shapeCurve = &m_parameters.shapeCurve;
     params.direction = m_direction;
     params.iconRect = m_iconGeometry;
     params.squashProgress = 0.0;
@@ -603,7 +605,7 @@ void Model::applyBump(KWin::WindowQuadList& quads) const
 void Model::applyStretch1(KWin::WindowQuadList& quads) const
 {
     TransformParameters params;
-    params.shapeCurve = m_parameters.shapeCurve;
+    params.shapeCurve = &m_parameters.shapeCurve;
     params.direction = m_direction;
     params.iconRect = m_iconGeometry;
     params.squashProgress = 0.0;
@@ -616,7 +618,7 @@ void Model::applyStretch1(KWin::WindowQuadList& quads) const
 void Model::applyStretch2(KWin::WindowQuadList& quads) const
 {
     TransformParameters params;
-    params.shapeCurve = m_parameters.shapeCurve;
+    params.shapeCurve = &m_parameters.shapeCurve;
     params.direction = m_direction;
     params.iconRect = m_iconGeometry;
     params.squashProgress = 0.0;
@@ -629,7 +631,7 @@ void Model::applyStretch2(KWin::WindowQuadList& quads) const
 void Model::applySquash(KWin::WindowQuadList& quads) const
 {
     TransformParameters params;
-    params.shapeCurve = m_parameters.shapeCurve;
+    params.shapeCurve = &m_parameters.shapeCurve;
     params.direction = m_direction;
     params.iconRect = m_iconGeometry;
     params.squashProgress = m_timeLine.value();
