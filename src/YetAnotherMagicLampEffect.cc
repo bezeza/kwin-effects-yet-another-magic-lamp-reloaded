@@ -53,6 +53,30 @@ static quintptr windowId(const void* window)
     return reinterpret_cast<quintptr>(window);
 }
 
+static void logMeshWorkEstimate(const char* operation, const KWin::EffectWindow* window, int maxQuadSize)
+{
+    if (!lcMagicLamp().isDebugEnabled() || !window) {
+        return;
+    }
+
+    const QRectF frame = window->frameGeometry();
+    if (!std::isfinite(frame.width()) || !std::isfinite(frame.height())
+        || frame.width() <= 0 || frame.height() <= 0) {
+        return;
+    }
+
+    const auto width = static_cast<std::uint64_t>(std::ceil(frame.width()));
+    const auto height = static_cast<std::uint64_t>(std::ceil(frame.height()));
+    const std::uint64_t estimate = CoordinateMapper::estimatedGridQuadCount(
+        width, height, static_cast<unsigned int>(maxQuadSize));
+    qCDebug(lcMagicLamp).noquote() << "mesh.work-estimate"
+                                   << "operation=" << operation
+                                   << "window=" << windowId(window)
+                                   << "size=" << width << "x" << height
+                                   << "cellSize=" << maxQuadSize
+                                   << "rectQuads=" << estimate;
+}
+
 enum ShapeCurve {
     Linear = 0,
     Quad = 1,
@@ -389,6 +413,7 @@ void YetAnotherMagicLampEffect::animateMinimize(KWin::EffectWindow* w, const QRe
     animData.recoveryAttempts = 0;
     animData.recoveryGeneration = 0;
     animData.model.setParameters(m_modelParameters);
+    logMeshWorkEstimate("minimize", w, m_maxQuadSize);
     qCDebug(lcMagicLamp).noquote() << "minimize.target"
                                    << "window=" << windowId(w)
                                    << "target=" << target;
@@ -649,6 +674,7 @@ void YetAnotherMagicLampEffect::startUnminimize(KWin::EffectWindow* w)
     animData.model.setWindow(w);
     animData.model.setParameters(m_modelParameters);
     animData.model.setIconGeometry(*target);
+    logMeshWorkEstimate("unminimize", w, m_maxQuadSize);
     if (!animData.model.start(Model::AnimationKind::Unminimize)) {
         if (hadAnimation) {
             unredirect(w);
